@@ -1,0 +1,5 @@
+[core]
+    remote = gcsremote
+['remote "gcsremote"']
+    url = gs://filtering_model_training_data
+    credentialpath = ../gcp_credentials.json
