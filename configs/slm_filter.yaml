@@ -1,0 +1,19 @@
+model_name: slm_filter
+base_model: distilbert-base-uncased
+num_labels: 2
+learning_rate: 2e-5
+num_epochs: 3
+batch_size: 8
+
+# Local data (pulled via DVC)
+data_path: data/slm_filter/labeled_data.csv
+
+# Local output path
+output_dir: models/slm_filter
+
+# Buckets
+gcs_data_bucket: filtering_model_training_data
+gcs_model_bucket: origin-hub_model-weights
+
+# Organized upload path inside model bucket
+gcs_path: slm_filter/v1
