@@ -7,3 +7,5 @@ dvc[gcs]==3.56.0
 apache-airflow==2.10.2
 pyyaml
 dvc-gs==3.0.0
+pytest==8.4.2
+scikit-learn==1.7.2
