@@ -1,0 +1,11 @@
+base_model: distilbert-base-uncased
+batch_size: 4
+data_path: data/slm_filter/labeled_data.csv
+early_stopping_patience: 2
+gcs_model_bucket: origin-hub_model-weights
+learning_rate: 2e-5
+model_name: slm_filter
+num_epochs: 8
+num_labels: 2
+output_dir: models/slm_filter
+version: 1

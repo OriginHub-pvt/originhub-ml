@@ -1,0 +1,14 @@
+md5: b3fc41c6270abee21cff96b0d46ec026
+frozen: true
+deps:
+- etag: 08f8a5cf82a9c590031001
+  size: 910498
+  version_id: '1761600437736184'
+  hash: md5
+  path: 
+    gs://filtering_model_training_data/processed/slm_filtered/labeled_data.csv
+outs:
+- md5: 158fdbc4a31221ac285103d7677fefaf
+  size: 910498
+  hash: md5
+  path: labeled_data.csv
