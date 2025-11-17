@@ -1,59 +1,148 @@
 """
-Tests for AgentBase class.
+Tests for AgentBase.
+
+Defines required behavior for all agents:
+- Requires name, inference_engine, and prompt_builder
+- Must implement build_prompt()
+- run() must call build_prompt and generate()
+- run() must return the same State instance (mutated inline)
+- Writes to state.agent_outputs[name]
+- Properly stores last_prompt and last_output
+- Errors should not crash; instead stored as error
 """
 
-import pytest
 from unittest.mock import MagicMock
-from src.agentic.core.agent_base import AgentBase
+
 from src.agentic.core.state import State
+from src.agentic.core.agent_base import AgentBase
 
 
+# Dummy subclasses for testing
 class DummyAgent(AgentBase):
-    """Minimal concrete agent to test AgentBase."""
-
     def build_prompt(self, state: State) -> str:
-        return "PROMPT"
-
-    def process_output(self, output: str, state: State) -> None:
-        state.set("processed", output)
+        return f"PROMPT: {state.input_text}"
 
 
-def test_agent_base_runs_full_flow():
-    """AgentBase.run() should build prompt → generate → process output."""
+class ErrorAgent(AgentBase):
+    def build_prompt(self, state: State) -> str:
+        raise RuntimeError("boom")
 
-    fake_engine = MagicMock()
-    fake_engine.generate.return_value = "MODEL_OUT"
 
-    agent = DummyAgent(fake_engine)
-    state = State()
+# --------------------------------------------------------------------
+# Tests
+# --------------------------------------------------------------------
 
-    agent.run(state)
+def test_agent_base_initializes_properly():
+    mock_engine = MagicMock()
+    mock_pb = MagicMock()
 
-    # verify call sequence
-    fake_engine.generate.assert_called_once_with(
-        "PROMPT",
-        heavy=False,
-        max_tokens=512,
-        temperature=0.2,
-        top_p=0.95,
-        stop=None,
+    agent = DummyAgent(
+        name="Interpreter",
+        inference_engine=mock_engine,
+        prompt_builder=mock_pb,
     )
 
-    assert state.get("processed") == "MODEL_OUT"
+    assert agent.name == "Interpreter"
+    assert agent.engine is mock_engine
+    assert agent.prompt_builder is mock_pb
 
 
-def test_agent_base_can_use_heavy_model():
-    """AgentBase should respect heavy=True flag."""
+def test_agent_base_calls_build_prompt():
+    mock_engine = MagicMock()
+    mock_pb = MagicMock()
 
-    fake_engine = MagicMock()
-    fake_engine.generate.return_value = "OUT"
+    agent = DummyAgent(
+        name="Interpreter",
+        inference_engine=mock_engine,
+        prompt_builder=mock_pb,
+    )
 
-    agent = DummyAgent(fake_engine, heavy=True)
-    state = State()
-
+    state = State(input_text="hello")
     agent.run(state)
 
-    fake_engine.generate.assert_called_once()
-    _, kwargs = fake_engine.generate.call_args
+    assert agent.last_prompt == "PROMPT: hello"
 
-    assert kwargs["heavy"] is True
+
+def test_agent_base_calls_inference_engine():
+    mock_engine = MagicMock()
+    mock_engine.generate.return_value = "agent output"
+
+    agent = DummyAgent(
+        name="TestAgent",
+        inference_engine=mock_engine,
+        prompt_builder=MagicMock(),
+        heavy=False,
+    )
+
+    state = State(input_text="testing")
+    agent.run(state)
+
+    mock_engine.generate.assert_called_once()
+    _, kwargs = mock_engine.generate.call_args
+
+    assert kwargs["prompt"] == "PROMPT: testing"
+    assert kwargs["heavy"] is False
+
+
+def test_agent_run_updates_state_outputs():
+    mock_engine = MagicMock()
+    mock_engine.generate.return_value = "out"
+
+    agent = DummyAgent(
+        name="MyAgent",
+        inference_engine=mock_engine,
+        prompt_builder=MagicMock(),
+    )
+
+    s = State(input_text="x")
+    agent.run(s)
+
+    assert s.agent_outputs["MyAgent"] == "out"
+
+
+def test_agent_run_returns_same_state():
+    mock_engine = MagicMock()
+    mock_engine.generate.return_value = "hi"
+
+    agent = DummyAgent(
+        name="A",
+        inference_engine=mock_engine,
+        prompt_builder=MagicMock(),
+    )
+
+    s = State(input_text="q")
+    returned = agent.run(s)
+    assert returned is s
+
+
+def test_agent_tracks_last_prompt_and_last_output():
+    mock_engine = MagicMock()
+    mock_engine.generate.return_value = "ok"
+
+    agent = DummyAgent(
+        name="TrackAgent",
+        inference_engine=mock_engine,
+        prompt_builder=MagicMock(),
+    )
+
+    s = State(input_text="hello")
+    agent.run(s)
+
+    assert agent.last_prompt == "PROMPT: hello"
+    assert agent.last_output == "ok"
+
+
+def test_agent_handles_errors_without_crashing():
+    mock_engine = MagicMock()
+
+    agent = ErrorAgent(
+        name="BadAgent",
+        inference_engine=mock_engine,
+        prompt_builder=MagicMock(),
+    )
+
+    s = State(input_text="hello")
+    out = agent.run(s)
+
+    assert isinstance(out, State)
+    assert "error" in out.agent_outputs["BadAgent"]
