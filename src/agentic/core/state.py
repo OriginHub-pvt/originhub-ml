@@ -53,6 +53,8 @@ class State:
         self.strategy = strategy
         self.is_new_idea = is_new_idea
         self.need_more_clarification = need_more_clarification
+        self.mini_review = None
+        self.summary = None
 
     def add_clarification(self, text: str) -> None:
         """
@@ -116,6 +118,8 @@ class State:
             "strategy": self.strategy,
             "is_new_idea": self.is_new_idea,
             "need_more_clarification": self.need_more_clarification,
+            "mini_review": self.mini_review,
+            "summary": self.summary,
         }
 
     def reset(self) -> None:
