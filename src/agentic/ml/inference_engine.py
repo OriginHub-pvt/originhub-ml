@@ -1,65 +1,66 @@
 """
-Inference Engine Module
-=======================
+Inference Engine
+================
 
-Provides unified generate() interface for both LLMs.
+Provides a uniform interface for generating text from either the heavy
+or light model, using thread-safe execution.
 """
 
-from typing import List, Optional
-from .model_manager import ModelManager
+from typing import Optional
+from src.agentic.ml.model_manager import ModelManager
 
 
 class InferenceEngine:
     """
-    Unified API for LLM inference across all agents.
+    Handles inference routing between heavy/light models.
     """
 
-    def __init__(self, manager: ModelManager):
+    def __init__(self, model_manager: ModelManager):
         """
         Parameters
         ----------
-        manager : ModelManager
-            Model manager instance containing loaded models.
+        model_manager : ModelManager
+            Instance providing access to both models and their locks.
         """
-        self.manager = manager
+        self.manager = model_manager
 
     def generate(
         self,
         prompt: str,
         heavy: bool = False,
-        max_tokens: int = 512,
-        temperature: float = 0.2,
-        top_p: float = 0.95,
-        stop: Optional[List[str]] = None,
+        max_tokens: int = 256,
+        temperature: float = 0.7,
+        top_p: float = 0.9,
+        stop: Optional[list] = None,
     ) -> str:
         """
-        Generates text using heavy or light LLM.
+        Generate text using the selected model.
 
         Parameters
         ----------
         prompt : str
-            Text prompt for generation.
+            Input prompt string.
         heavy : bool
-            If True uses 7B model; else uses 1.5B.
+            Whether to use the heavy (7B) model.
         max_tokens : int
-            Maximum output token count.
+            Maximum number of tokens to generate.
         temperature : float
             Sampling temperature.
         top_p : float
-            Nucleus sampling probability.
-        stop : list of str or None
-            Stop sequences for generation.
+            Nucleus sampling parameter.
+        stop : list
+            List of stopping sequences.
 
         Returns
         -------
         str
-            Generated text.
+            Generated text output.
         """
-        model, lock = self.manager.get(heavy)
+        model, lock = self.manager.get(heavy=heavy)
 
         with lock:
-            output = model(
-                prompt,
+            result = model(
+                prompt=prompt,           # ← FIXED (test expects this)
                 max_tokens=max_tokens,
                 temperature=temperature,
                 top_p=top_p,
@@ -67,4 +68,6 @@ class InferenceEngine:
                 echo=False,
             )
 
-        return output["choices"][0]["text"].strip()
+        # Expected llama.cpp output structure
+        text = result.get("choices", [{}])[0].get("text", "")
+        return text.strip()

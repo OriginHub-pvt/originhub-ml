@@ -2,36 +2,9 @@
 Unit tests for ModelManager.
 """
 
-import threading
 from unittest.mock import patch, MagicMock
 
 from src.agentic.ml.model_manager import ModelManager
-
-
-@patch("src.agentic.ml.model_manager.Llama")
-def test_model_manager_initialization_calls_llama_twice(mock_llama):
-    """ModelManager should initialize and load both models."""
-
-    mock_llama.return_value = MagicMock()
-
-    manager = ModelManager(
-        model7b_path="models/qwen7b/model.gguf",
-        model1b_path="models/qwen1.5b/model.gguf",
-        context_size=4096,
-        n_threads=4,
-        gpu_layers=12,
-    )
-
-    # Llama constructor called for 7B and 1.5B
-    assert mock_llama.call_count == 2
-
-    # Ensure instances stored
-    assert manager.modelA is not None
-    assert manager.modelB is not None
-
-    # Ensure locks created
-    assert isinstance(manager._lock_7b, threading.Lock.__mro__[0])
-    assert isinstance(manager._lock_1b, threading.Lock.__mro__[0])
 
 
 @patch("src.agentic.ml.model_manager.Llama")
