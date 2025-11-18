@@ -9,7 +9,7 @@ on:
       - 'Pipeline/pipeline.py'
       - 'Pipeline/run_pipeline.py'
       - 'configs/**.yaml'
-      - '.github/workflows/vertex-pipeline.yml'
+      - '.github/workflows/run_vertex-pipeline.yml'
   pull_request:
     branches:
       - main
