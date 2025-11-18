@@ -468,6 +468,7 @@ def slm_pipeline(
     )
     # preprocess_task.set_cpu_limit("1")
     # preprocess_task.set_memory_limit("8G")
+    preprocess_task.set_machine_type("A3")
     
     # Step 2: Train
     train_task = train_component(
@@ -483,10 +484,12 @@ def slm_pipeline(
         processed_input=preprocess_task.outputs["processed_output"]
     )
     # Configure GPU for training
-    # train_task.set_accelerator_type("NVIDIA_TESLA_T4")
-    # train_task.set_accelerator_limit(1)
+    train_task.set_accelerator_type("NVIDIA_TESLA_T4")
+    train_task.set_accelerator_limit(1)
+    train_task.set_machine_type("A3")
     # train_task.set_cpu_limit("1")
     # train_task.set_memory_limit("16G")
+    
     
     # Step 3: Evaluate quality
     eval_task = evaluate_component(
