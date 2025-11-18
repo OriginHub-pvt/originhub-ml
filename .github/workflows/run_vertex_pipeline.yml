@@ -4,7 +4,7 @@ on:
   push:
     branches:
       - main
-      - develop
+      - nishitha/ci-cd
     paths:
       - 'Pipeline/pipeline.py'
       - 'Pipeline/run_pipeline.py'
@@ -13,7 +13,7 @@ on:
   pull_request:
     branches:
       - main
-      - develop
+      - nishitha/ci-cd
     paths:
       - 'Pipeline/pipeline.py'
       - 'Pipeline/run_pipeline.py'
