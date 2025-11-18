@@ -251,12 +251,12 @@ jobs:
             echo "✅ Pipeline submitted successfully"
             
             # Extract job URL from output
-            JOB_URL=$(echo "$OUTPUT" | grep -o 'https://console.cloud.google.com[^[:space:]]*' | head -1)
-            echo "job-url=$JOB_URL" >> $GITHUB_OUTPUT
+            JOB_URL=$(echo "$OUTPUT" | grep -o 'https://console.cloud.google.com/vertex-ai/locations/[^[:space:]]*' | head -1)
+            echo "job-url=${JOB_URL}" >> $GITHUB_OUTPUT
             
             # Extract job name
-            JOB_NAME=$(echo "$OUTPUT" | grep -o 'Job resource name: [^[:space:]]*' | cut -d' ' -f4)
-            echo "job-name=$JOB_NAME" >> $GITHUB_OUTPUT
+            JOB_NAME=$(echo "$OUTPUT" | grep -o 'pipelineJobs/[^[:space:]]*' | head -1 | cut -d'/' -f2)
+            echo "job-name=${JOB_NAME}" >> $GITHUB_OUTPUT
           else
             echo "❌ Pipeline submission failed"
             exit 1
