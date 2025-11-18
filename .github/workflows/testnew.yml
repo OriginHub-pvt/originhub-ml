@@ -1,4 +1,4 @@
-name: Test Workflow
+name: New Test Workflow
 
 # Trigger on any push to any branch
 on: 
