@@ -9,7 +9,6 @@ num_epochs: 8
 num_labels: 2
 output_dir: models/slm_filter
 version: 1
-gcs_model_bucket: "my-model-artifacts"
 pass_threshold: 0.75  # Minimum F1 score to pass quality check
 bias_threshold: 0.1   # Max acceptable accuracy difference between groups
 project_id: env.GCP_PROJECT_ID
