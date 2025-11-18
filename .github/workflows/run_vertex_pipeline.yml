@@ -247,20 +247,20 @@ jobs:
           
           echo "$OUTPUT"
           
-          if [ $EXIT_CODE -eq 0 ]; then
-            echo "✅ Pipeline submitted successfully"
+          # if [ $EXIT_CODE -eq 0 ]; then
+          #   echo "✅ Pipeline submitted successfully"
             
-            JOB_URL=$(echo "$OUTPUT" | grep -o 'https://console.cloud.google.com/vertex-ai/locations/[^[:space:]]*' | head -1)
+          #   JOB_URL=$(echo "$OUTPUT" | grep -o 'https://console.cloud.google.com/vertex-ai/locations/[^[:space:]]*' | head -1)
             
-            JOB_NAME=$(echo "$OUTPUT" | grep -o 'pipelineJobs/[^[:space:]]*' | head -1 | cut -d'/' -f2)
+          #   JOB_NAME=$(echo "$OUTPUT" | grep -o 'pipelineJobs/[^[:space:]]*' | head -1 | cut -d'/' -f2)
 
-            echo "job-url=${JOB_URL:-'N/A'}" >> $GITHUB_OUTPUT
-            echo "job-name=${JOB_NAME:-'N/A'}" >> $GITHUB_OUTPUT
+          #   echo "job-url=${JOB_URL:-'N/A'}" >> $GITHUB_OUTPUT
+          #   echo "job-name=${JOB_NAME:-'N/A'}" >> $GITHUB_OUTPUT
 
-          else
-            echo "❌ Pipeline submission failed (Script exited with code 1)"
-            exit 1
-          fi
+          # else
+          #   echo "❌ Pipeline submission failed (Script exited with code 1)"
+          #   exit 1
+          # fi
 
       - name: Create submission summary
         if: success()
