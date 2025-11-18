@@ -521,4 +521,4 @@ if __name__ == "__main__":
         pipeline_func=slm_pipeline,
         package_path="slm_vertex_pipeline.json"
     )
-    print("Pipeline compiled successfully to slm_vertex_pipeline.json")
+    print("Pipeline compiled successfully to slm_vertex_pipeline.json 1")
