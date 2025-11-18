@@ -241,8 +241,9 @@ jobs:
           echo "Command: $CMD"
           
           # Submit and capture output
-          OUTPUT=$($CMD 2>&1)
-          EXIT_CODE=$?
+          # OUTPUT=$($CMD 2>&1)
+          # EXIT_CODE=$?
+          $CMD
           
           echo "$OUTPUT"
           
