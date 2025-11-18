@@ -129,10 +129,17 @@ jobs:
           import json
           with open('slm_vertex_pipeline.json') as f:
               pipeline = json.load(f)
-          assert 'pipelineSpec' in pipeline, 'Invalid pipeline structure'
-          assert 'components' in pipeline['pipelineSpec'], 'No components found'
-          print(f\"✓ Pipeline validation passed\")
-          print(f\"  Components: {len(pipeline['pipelineSpec']['components'])}\")"
+          
+
+          assert 'components' in pipeline, 'Missing required top-level key: components'
+          assert 'root' in pipeline, 'Missing required top-level key: root'
+          assert 'deploymentSpec' in pipeline, 'Missing required top-level key: deploymentSpec'
+          
+          # Check the number of components defined
+          num_components = len(pipeline['components'])
+          
+          print(f\"✓ Pipeline validation passed (KFP v2 structure)\")
+          print(f\"  Components found: {num_components}\")"
 
       - name: Upload compiled pipeline
         uses: actions/upload-artifact@v4

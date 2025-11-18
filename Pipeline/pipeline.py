@@ -3,9 +3,6 @@ import kfp
 from kfp import dsl
 from kfp.dsl import component, Input, Output, Dataset, Model, Artifact, Condition
 
-# -------------------------
-# KFP Components (all logic must be INSIDE component functions)
-# -------------------------
 
 @component(
     base_image="python:3.10",
@@ -423,9 +420,6 @@ def upload_and_register_component(
     print(f"Model ID: {model.name}")
 
 
-# -------------------------
-# Pipeline definition
-# -------------------------
 @dsl.pipeline(
     name="slm-vertex-pipeline",
     description="End-to-end ML pipeline: Preprocess -> Train -> Eval -> Bias Check -> Register"
