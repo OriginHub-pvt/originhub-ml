@@ -250,15 +250,15 @@ jobs:
           if [ $EXIT_CODE -eq 0 ]; then
             echo "✅ Pipeline submitted successfully"
             
-            # Extract job URL from output
             JOB_URL=$(echo "$OUTPUT" | grep -o 'https://console.cloud.google.com/vertex-ai/locations/[^[:space:]]*' | head -1)
-            echo "job-url=${JOB_URL}" >> $GITHUB_OUTPUT
             
-            # Extract job name
             JOB_NAME=$(echo "$OUTPUT" | grep -o 'pipelineJobs/[^[:space:]]*' | head -1 | cut -d'/' -f2)
-            echo "job-name=${JOB_NAME}" >> $GITHUB_OUTPUT
+
+            echo "job-url=${JOB_URL:-'N/A'}" >> $GITHUB_OUTPUT
+            echo "job-name=${JOB_NAME:-'N/A'}" >> $GITHUB_OUTPUT
+
           else
-            echo "❌ Pipeline submission failed"
+            echo "❌ Pipeline submission failed (Script exited with code 1)"
             exit 1
           fi
 
