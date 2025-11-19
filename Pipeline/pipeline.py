@@ -1,4 +1,3 @@
-# pipeline_fixed.py
 import kfp
 from kfp import dsl
 from kfp.dsl import component, Input, Output, Dataset, Model, Artifact, Condition
@@ -37,7 +36,7 @@ def preprocess_component(
     with open(config_path) as f:
         cfg = yaml.safe_load(f)
     
-    # Download data from GCS if needed
+    # Download data from GCS
     if data_path.startswith("gs://"):
         client = storage.Client()
         bucket_name = data_path.split("/")[2]
@@ -295,7 +294,6 @@ def evaluate_component(
     with open(metrics_file) as f:
         metrics = json.load(f)
     
-    # Try multiple possible F1 metric keys
     f1 = (metrics.get("eval_f1") or 
           metrics.get("f1") or 
           metrics.get("eval_f1_score") or 

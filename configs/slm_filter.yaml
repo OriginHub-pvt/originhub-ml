@@ -9,10 +9,9 @@ num_epochs: 8
 num_labels: 2
 output_dir: models/slm_filter
 version: 1
-pass_threshold: 0.75  # Minimum F1 score to pass quality check
-bias_threshold: 0.1   # Max acceptable accuracy difference between groups
+pass_threshold: 0.75  
+bias_threshold: 0.1
 project_id: env.GCP_PROJECT_ID
 region: env.GCP_REGION
 early_stopping_patience: 2
 random_seed: 42
-new: test1

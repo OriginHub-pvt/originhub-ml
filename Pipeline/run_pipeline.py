@@ -1,7 +1,3 @@
-"""
-Execute the fixed KFP pipeline on Vertex AI
-"""
-
 import argparse
 import yaml
 from google.cloud import aiplatform
