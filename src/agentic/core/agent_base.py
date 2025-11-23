@@ -57,6 +57,15 @@ class AgentBase:
             prompt = self.build_prompt(state)
             self.last_prompt = prompt
 
+            # Debug: print agent prompt and a compact state snapshot (conditional)
+            try:
+                state_snapshot = repr({k: v for k, v in state.__dict__.items() if k in ('input_text','interpreted','clarifications')})
+            except Exception:
+                state_snapshot = repr(state.__dict__)
+            from src.agentic.utils.logger import debug
+            debug(f"[AgentBase] >>> Agent: {self.name} — state before run: {state_snapshot}")
+            debug(f"[AgentBase] >>> Prompt for {self.name}:\n{prompt}")
+
             output = self.engine.generate(
                 prompt=prompt,
                 heavy=self.heavy,
@@ -67,6 +76,21 @@ class AgentBase:
             )
             self.last_output = output
             state.agent_outputs[self.name] = output
+            # Debug: print raw model output (truncated)
+            try:
+                out_preview = output if isinstance(output, str) else repr(output)
+            except Exception:
+                out_preview = repr(output)
+            if len(out_preview) > 1000:
+                out_preview = out_preview[:1000] + '...[truncated]'
+            from src.agentic.utils.logger import debug
+            debug(f"[AgentBase] <<< Raw output for {self.name}:\n{out_preview}")
+
+            try:
+                state_snapshot_after = repr({k: v for k, v in state.__dict__.items() if k in ('input_text','interpreted','clarifications')})
+            except Exception:
+                state_snapshot_after = repr(state.__dict__)
+            debug(f"[AgentBase] >>> Agent: {self.name} — state after run: {state_snapshot_after}")
 
         except Exception as e:
             error_text = f"error: {type(e).__name__}: {e}"

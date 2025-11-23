@@ -48,23 +48,28 @@ class PromptBuilder:
             You are an assistant that converts startup or product ideas into a clean JSON object.
 
             User idea:
-            \"\"\"{input_text}\"\"\"
+                {input_text}
 
-            Return a single JSON object with fields like:
-            - "title": short name of the idea
-            - "one_line": one line summary
-            - "problem": what problem it solves
-            - "solution": how it solves it
-            - "domain": high-level category (e.g., productivity, devtools, health, finance)
-            - "target_users": short description of the target users
-            - "key_features": list of 3–7 features
-            - "stage": one of ["idea", "prototype", "launched", "other"]
-            - "extra_notes": any other relevant details
+                RETURN REQUIREMENTS (strict):
+                    - Output EXACTLY one JSON object and NOTHING ELSE (no explanations, no code fences).
+                    - Ensure the following REQUIRED fields are present and NON-EMPTY: "title", "description", "problem".
+                        * "title": a short name (max 6 words), e.g. "Smart Grocery List".
+                        * "description": 1-2 concise sentences summarizing the idea.
+                        * "problem": 1 sentence describing the user problem this idea addresses.
 
-            Important:
-            - Respond with ONLY valid JSON.
-            - Do not add explanations or comments.
-        """
+                Additional optional fields (fill when available):
+                    - "one_line": one-line summary
+                    - "solution": how it solves the problem
+                    - "domain": high-level category (e.g., productivity, health)
+                    - "target_users": short description of the target users
+                    - "key_features": list of 3–7 short feature strings
+                    - "stage": one of ["idea", "prototype", "launched", "other"]
+                    - "extra_notes": any other relevant details
+                
+                Important:
+                    - Respond with ONLY valid JSON.
+                    - Do not add explanations, commentary, or any extra text outside the JSON object.
+            """
 
     # ------------------------------------------------------------------
     # 2) Clarifier
@@ -80,25 +85,61 @@ class PromptBuilder:
         Returns
         -------
         str
-            Prompt asking the model to generate clarifying questions.
+            Prompt asking the model to generate field-specific clarifying questions.
         """
+        required_fields = [
+            ("title", "What is the title of your idea?"),
+            ("description", "Please provide a description for your idea."),
+            ("problem", "What problem does your idea solve?")
+        ]
+        missing = [q for f, q in required_fields if not interpreted.get(f)]
+        if missing:
+            questions = '\n'.join([f'- {q}' for q in missing])
+            # Build a sanitized summary of the interpreted fields (no long text)
+            safe_items = []
+            try:
+                import json as _json
+                for k, v in (interpreted or {}).items():
+                    if isinstance(v, str):
+                        snippet = v.strip().replace('\n', ' ')[:120]
+                        safe_items.append(f"{k}: \"{snippet}\"")
+                    else:
+                        safe_items.append(f"{k}: {type(v).__name__}")
+                safe_summary = _json.dumps(safe_items, ensure_ascii=False)
+            except Exception:
+                safe_summary = str(list((interpreted or {}).keys()))
+
+            # Ask the LLM to produce conversational, field-specific questions with short examples
+            return f"""
+            You are a friendly clarifying assistant.
+
+            Current interpreted fields (sanitized):
+            {safe_summary}
+
+            The following required details are missing:
+            {questions}
+
+            CRITICAL: Output ONLY a JSON array of short question strings, and NOTHING ELSE. Do NOT echo the interpreted object, do not include any explanatory text, code fences, or metadata. If you cannot produce questions, return an empty JSON array `[]`.
+
+            For each missing field, produce ONE short, conversational question that asks the user to provide that field. Phrase each question in second-person (e.g., "What is the title of your idea?") and include a very short example in parentheses after the question to guide the user (for example: "(e.g., 'Smart Grocery List')"). Keep questions under 20 words.
+
+            Return a JSON array of strings only, in the order of the missing fields. The runner will ask them one at a time. Example response:
+            [
+              "What is the title of your idea? (e.g., 'Smart Grocery List')",
+              "Please provide a short description of your idea. (2–3 sentences)"
+            ]
+
+            If everything is already clear, return an empty JSON array: [].
+            """
+        # Fallback to generic prompt if nothing is missing
         return f"""
             You are a clarifying assistant.
 
             Here is the current structured representation of the idea:
             {interpreted}
 
-            Your task:
-            - Identify missing or ambiguous information.
-            - Write 0–5 short clarifying questions that would help you understand the idea better.
-
-            Respond with a JSON array of strings, for example:
-            [
-            "Who is the primary target user?",
-            "How will this product make money?"
-            ]
-            If everything is already clear, return [].
-        """
+            If any required information is missing or unclear, ask a specific question for each missing field. Respond with a JSON array of strings. If everything is already clear, return [].
+            """
 
     # ------------------------------------------------------------------
     # 3) Reviewer (market review)

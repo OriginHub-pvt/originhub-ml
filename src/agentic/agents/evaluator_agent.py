@@ -44,7 +44,7 @@ class EvaluatorAgent:
         """
         if not hasattr(state, "agent_outputs") or state.agent_outputs is None:
             state.agent_outputs = {}
-
+        print("Evaluator")
         # -------------------------------
         # Decision logic
         # -------------------------------

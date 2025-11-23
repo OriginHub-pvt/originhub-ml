@@ -41,7 +41,7 @@ class ReviewerAgent(AgentBase):
             inference_engine=inference_engine,
             prompt_builder=prompt_builder,
             heavy=False,          # Reviewer uses the light model
-            max_tokens=512,
+            max_tokens=256,
             temperature=0.4,
             top_p=0.9,
             stop=None,
@@ -74,7 +74,7 @@ class ReviewerAgent(AgentBase):
         """
         # Let AgentBase handle prompt creation, LLM call, error handling
         state = super().run(state)
-
+        print("Reviewer")
         raw_output = state.agent_outputs.get(self.name, "")
 
         # If an error occurred, AgentBase already stored "error: ..."

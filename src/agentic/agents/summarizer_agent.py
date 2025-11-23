@@ -20,6 +20,7 @@ from typing import Any, Dict
 
 from src.agentic.core.agent_base import AgentBase
 from src.agentic.core.state import State
+from src.agentic.utils.json_utils import extract_first_json
 
 
 class SummarizerAgent(AgentBase):
@@ -84,7 +85,7 @@ class SummarizerAgent(AgentBase):
         - Store raw output too
         """
         state = super().run(state)
-
+        print("Summarizer")
         raw_output = state.agent_outputs.get(self.name, "")
 
         # If AgentBase recorded an LLM failure
@@ -94,14 +95,20 @@ class SummarizerAgent(AgentBase):
 
         cleaned = raw_output.strip()
 
-        # Try JSON parse
+        # Prefer the first JSON object found anywhere in the output
+        parsed = extract_first_json(cleaned)
+        if parsed is not None:
+            state.summary = parsed
+            return state
+
+        # Try direct loads as a last resort
         try:
             parsed = json.loads(cleaned)
             if isinstance(parsed, dict):
                 state.summary = parsed
                 return state
         except Exception:
-            pass  # Not JSON, fallback to text
+            pass
 
         # Fallback: plain text summary
         state.summary = cleaned

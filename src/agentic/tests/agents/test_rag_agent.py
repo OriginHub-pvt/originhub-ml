@@ -47,7 +47,7 @@ def test_rag_agent_calls_vector_store():
 
 def test_rag_agent_stores_results_into_state():
     mock_db = MagicMock()
-    mock_db.search.return_value = [{"id": "123", "score": 0.92}]
+    mock_db.search.return_value = [{"id": "123", "distance": 0.1}]
 
     agent = RAGAgent(vector_db=mock_db)
 
@@ -73,6 +73,44 @@ def test_rag_agent_marks_new_idea_if_no_results():
 
     assert updated.rag_results == []
     assert updated.is_new_idea is True
+
+
+def test_rag_agent_treats_far_matches_as_new_idea(monkeypatch):
+    """
+    If retrieved matches have high distance values above the threshold, they
+    should be considered not similar -> treat as new idea.
+    """
+    mock_db = MagicMock()
+    mock_db.search.return_value = [{"id": "123", "distance": 0.8}]
+
+    # Use default threshold 0.35 -> 0.8 should be considered new
+    agent = RAGAgent(vector_db=mock_db)
+
+    s = State()
+    s.interpreted = {"title": "Novel hardware approach"}
+
+    updated = agent.run(s)
+
+    assert updated.rag_results == [{"id": "123", "distance": 0.8}]
+    assert updated.is_new_idea is True
+
+
+def test_rag_agent_treats_close_matches_as_not_new(monkeypatch):
+    """
+    Low distance values should be considered similar and mark is_new_idea False.
+    """
+    mock_db = MagicMock()
+    mock_db.search.return_value = [{"id": "123", "distance": 0.05}]
+
+    agent = RAGAgent(vector_db=mock_db)
+
+    s = State()
+    s.interpreted = {"title": "Incremental feature"}
+
+    updated = agent.run(s)
+
+    assert updated.rag_results == [{"id": "123", "distance": 0.05}]
+    assert updated.is_new_idea is False
 
 
 def test_rag_agent_stores_raw_payload_in_agent_outputs():

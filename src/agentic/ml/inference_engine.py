@@ -57,7 +57,6 @@ class InferenceEngine:
             Generated text output.
         """
         model, lock = self.manager.get(heavy=heavy)
-
         with lock:
             result = model(
                 prompt=prompt,           # ← FIXED (test expects this)

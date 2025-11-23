@@ -44,7 +44,7 @@ class StrategistAgent(AgentBase):
             inference_engine=inference_engine,
             prompt_builder=prompt_builder,
             heavy=True,          # Strategist must use HEAVY model
-            max_tokens=1024,
+            max_tokens=256,
             temperature=0.25,
             top_p=0.95,
             stop=None,
@@ -77,7 +77,7 @@ class StrategistAgent(AgentBase):
         """
         # Let AgentBase do prompt building, LLM call, and base error handling
         state = super().run(state)
-
+        print("Strategist")
         raw_output = state.agent_outputs.get(self.name, "")
 
         # If AgentBase stored an error message...
