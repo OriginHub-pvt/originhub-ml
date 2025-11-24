@@ -431,22 +431,22 @@ def main() -> None:
     disparities = summarize_disparities(slice_metrics)
     write_metrics(workdir, overall_metrics, slice_metrics, disparities)
 
-    LOGGER.info("Overall metrics: %s", overall_metrics)
-    LOGGER.info("Slice disparities (F1 range): %s", disparities or "None detected")
+    # LOGGER.info("Overall metrics: %s", overall_metrics)
+    # LOGGER.info("Slice disparities (F1 range): %s", disparities or "None detected")
 
-    for slice_name, rows in slice_metrics.items():
-        LOGGER.info("--- %s ---", slice_name)
-        for row in rows:
-            LOGGER.info(
-                "%s=%s | count=%d | acc=%.3f | prec=%.3f | rec=%.3f | f1=%.3f",
-                slice_name,
-                row.slice_value,
-                row.count,
-                row.accuracy,
-                row.precision,
-                row.recall,
-                row.f1,
-            )
+    # for slice_name, rows in slice_metrics.items():
+    #     LOGGER.info("--- %s ---", slice_name)
+    #     for row in rows:
+    #         LOGGER.info(
+    #             "%s=%s | count=%d | acc=%.3f | prec=%.3f | rec=%.3f | f1=%.3f",
+    #             slice_name,
+    #             row.slice_value,
+    #             row.count,
+    #             row.accuracy,
+    #             row.precision,
+    #             row.recall,
+    #             row.f1,
+    #         )
 
 if __name__ == "__main__":
     main()
