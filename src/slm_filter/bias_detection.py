@@ -384,3 +384,69 @@ def parse_arguments() -> argparse.Namespace:
         help="Tokenizer identifier to load (defaults to TOKENIZER_NAME env or distilbert-base-uncased).",
     )
     return parser.parse_args()
+
+def main() -> None:
+    """Entry point for CLI usage."""
+    args = parse_arguments()
+    level = logging.DEBUG if args.verbose else logging.INFO
+    logging.basicConfig(level=level, format="%(asctime)s %(levelname)s %(message)s")
+
+    workdir = Path(args.workdir).expanduser()
+    workdir.mkdir(parents=True, exist_ok=True)
+
+    model_uri = args.model_uri or build_model_uri_from_env()
+    if not model_uri:
+        raise ValueError(
+            "Model location not provided. Either set MODEL_BUCKET/MODEL_NAME/MODEL_VERSION env "
+            "variables or pass --model-uri explicitly."
+        )
+
+    data_uri = args.data_uri or build_data_uri_from_env()
+    if not data_uri:
+        raise ValueError("Dataset location not provided. Set DATASET_URI env or pass --data-uri.")
+
+    model_cache_dir = Path(args.model_cache_dir).expanduser() if args.model_cache_dir else default_model_cache_dir()
+    credentials_path = resolve_credentials_path(args.gcp_credentials)
+
+    fetcher: Optional[GCSArtifactFetcher] = None
+    if is_gcs_uri(model_uri) or is_gcs_uri(data_uri):
+        fetcher = GCSArtifactFetcher(credentials_path=credentials_path)
+
+    model_path = resolve_path(model_uri, fetcher, model_cache_dir)
+    data_path = resolve_path(data_uri, fetcher, workdir / "dataset.csv")
+
+    df = load_dataframe(data_path)
+    evaluator = BiasEvaluator(
+        model_dir=model_path,
+        batch_size=args.batch_size,
+        max_length=args.max_length,
+        tokenizer_name=args.tokenizer_name,
+    )
+    predictions, confidences = evaluator.predict(df)
+    df["prediction"] = predictions
+    df["confidence"] = confidences
+
+    overall_metrics = evaluator.compute_classification_metrics(df["label"], df["prediction"])
+    slice_metrics = evaluator.evaluate_slices(df, df["label"], df["prediction"], args.slice_cols)
+    disparities = summarize_disparities(slice_metrics)
+    write_metrics(workdir, overall_metrics, slice_metrics, disparities)
+
+    LOGGER.info("Overall metrics: %s", overall_metrics)
+    LOGGER.info("Slice disparities (F1 range): %s", disparities or "None detected")
+
+    for slice_name, rows in slice_metrics.items():
+        LOGGER.info("--- %s ---", slice_name)
+        for row in rows:
+            LOGGER.info(
+                "%s=%s | count=%d | acc=%.3f | prec=%.3f | rec=%.3f | f1=%.3f",
+                slice_name,
+                row.slice_value,
+                row.count,
+                row.accuracy,
+                row.precision,
+                row.recall,
+                row.f1,
+            )
+
+if __name__ == "__main__":
+    main()
