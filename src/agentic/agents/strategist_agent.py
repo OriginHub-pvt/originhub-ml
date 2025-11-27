@@ -2,11 +2,16 @@
 StrategistAgent
 ===============
 
-This agent creates a strategic blueprint or SWOT analysis for a brand-new idea.
+This agent creates a comprehensive strategic analysis including:
+- Market research and competitive landscape
+- SWOT analysis
+- Detailed action plan with next steps
+- Success metrics
+
 Uses the heavy model for deep reasoning.
 
 Outputs:
-- state.strategy  (parsed SWOT dict or plain text)
+- state.strategy  (parsed strategy dict or plain text)
 - state.agent_outputs["StrategistAgent"] (raw output or error)
 """
 
@@ -19,8 +24,13 @@ from src.agentic.core.state import State
 
 class StrategistAgent(AgentBase):
     """
-    StrategistAgent generates SWOT analysis or strategic guidance
-    for ideas that are flagged as new (state.is_new_idea == True).
+    StrategistAgent generates comprehensive strategic analysis including:
+    - Market research and competitive landscape
+    - SWOT analysis
+    - Detailed action plan with immediate, short-term, and medium-term steps
+    - Success metrics and validation criteria
+    
+    Only executes for ideas flagged as new (state.is_new_idea == True).
     """
 
     def __init__(
@@ -43,8 +53,8 @@ class StrategistAgent(AgentBase):
             name=name,
             inference_engine=inference_engine,
             prompt_builder=prompt_builder,
-            heavy=True,          # Strategist must use HEAVY model
-            max_tokens=256,
+            heavy=False,          # Strategist must use HEAVY model
+            max_tokens=1024,     # Increased for comprehensive analysis
             temperature=0.25,
             top_p=0.95,
             stop=None,
@@ -52,7 +62,7 @@ class StrategistAgent(AgentBase):
 
     def build_prompt(self, state: State) -> str:
         """
-        Build strategy prompt using interpreted idea JSON.
+        Build comprehensive strategy prompt with research and action plan.
 
         Parameters
         ----------
@@ -61,23 +71,21 @@ class StrategistAgent(AgentBase):
         Returns
         -------
         str
-            Prompt for the LLM.
+            Detailed prompt for market research, SWOT, and action plan.
         """
         return self.prompt_builder.strategy_prompt(state.interpreted)
 
     def run(self, state: State) -> State:
         """
         Execute StrategistAgent:
-        - Build prompt
-        - Generate strategic analysis using heavy LLM
-        - Store raw output
-        - Parse JSON if present
-        - Else store text directly
+        - Build comprehensive strategy prompt with research and action plan
+        - Generate detailed strategic analysis using heavy LLM
+        - Store raw output including market research, SWOT, and next steps
+        - Parse JSON if present, else store as structured text
         - Handle errors gracefully
         """
         # Let AgentBase do prompt building, LLM call, and base error handling
         state = super().run(state)
-        print("Strategist")
         raw_output = state.agent_outputs.get(self.name, "")
 
         # If AgentBase stored an error message...

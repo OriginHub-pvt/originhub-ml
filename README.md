@@ -1,19 +1,57 @@
-# originhub-ml
+# OriginHub ML
 
-Machine learning repository for OriginHub. Contains training code, configuration, and example data for the SLM filter text classification model.
+Machine learning repository for OriginHub. Contains:
 
-## Contents
+- **Agentic System**: Multi-agent reasoning pipeline for idea evaluation and strategic analysis
+- **SLM Filter**: Text classification model for filtering startup ideas
 
-- `configs/` — YAML configuration files (e.g. `configs/slm_filter.yaml`).
-- `data/` — sample and DVC-tracked data (`data/slm_filter/labeled_data.csv`).
-- `models/` — model artifacts are written here (e.g. `models/slm_filter/v1`).
-- `src/slm_filter/` — training code for the SLM filter model (`train.py`).
-- `requirements.txt` — required Python packages.
-- `gcp_credentials.json` — optional Google Cloud credentials (not committed in production).
+## Repository Structure
 
-## Quick start
+- `src/agentic/` — Multi-agent pipeline for idea analysis (see [Agentic README](src/agentic/README.md))
+- `src/slm_filter/` — Training code for the SLM filter classification model
+- `configs/` — YAML configuration files for model training
+- `data/` — Sample and DVC-tracked datasets
+- `models/` — Model artifacts and checkpoints
+- `requirements.txt` — Python dependencies
+- `.env.example` — Environment configuration template
 
-1. Create and activate a Python virtual environment (recommended):
+## Projects
+
+### 1. Agentic System
+
+A sophisticated multi-agent reasoning pipeline for business idea evaluation with GPU-accelerated LLMs.
+
+**Key Features:**
+
+- Interprets unstructured user input into structured business ideas
+- Semantic search using Weaviate vector database
+- Intelligent routing to specialized analysis agents
+- Competitive analysis and SWOT strategy generation
+- GPU-accelerated inference with Qwen models
+
+**Quick Start:**
+
+```bash
+# Setup environment
+cp .env.example .env
+# Edit .env with your configuration
+
+# Run interactive chat
+python src/agentic/scripts/chat_pipeline.py
+
+# Or single query
+python src/agentic/scripts/run_pipeline.py "Your business idea here"
+```
+
+See [src/agentic/README.md](src/agentic/README.md) for detailed documentation.
+
+### 2. SLM Filter
+
+Text classification model for filtering and categorizing startup ideas.
+
+**Setup:**
+
+1. Create and activate a Python virtual environment:
 
 ```bash
 python3 -m venv .venv
@@ -21,61 +59,102 @@ source .venv/bin/activate
 pip install -r requirements.txt
 ```
 
-2. Use DVC to pull data:
+2. Use DVC to pull training data:
 
 ```bash
 dvc pull
 ```
 
-3. Ensure GCP credentials are available if you plan to upload models to Google Cloud Storage. By default the training script looks for `gcp_credentials.json` in the repo root, but you can set the environment variable explicitly:
+3. Configure GCP credentials (optional, for model upload):
 
 ```bash
-export GOOGLE_APPLICATION_CREDENTIALS=/path/to/your/gcp_credentials.json
+export GOOGLE_APPLICATION_CREDENTIALS=/path/to/gcp_credentials.json
 ```
 
-4. Run the SLM filter training pipeline (default config path is `configs/slm_filter.yaml`):
+4. Run the training pipeline:
 
 ```bash
 python src/slm_filter/train.py --config configs/slm_filter.yaml --log-level INFO
 ```
 
-The training pipeline will:
+The pipeline will:
 
-- load and clean data from the path specified in the config
-- tokenize inputs and fine-tune the model
-- write the best model and `metrics.json` under `models/slm_filter/v{version}`
-- upload artifacts and metrics history to the configured GCS bucket
+- Load and clean data from the configured path
+- Tokenize inputs and fine-tune the model
+- Save the best model and metrics to `models/slm_filter/v{version}`
+- Upload artifacts to the configured GCS bucket
 
-## Configuration
+## Environment Configuration
 
-See `configs/slm_filter.yaml` for default values. Important keys:
+Copy `.env.example` to `.env` and configure your settings:
 
-- `base_model` — HuggingFace model id used as the backbone (e.g. `distilbert-base-uncased`).
-- `data_path` — CSV file with training data (expected columns: `title`, `description`, `label`).
-- `output_dir` — local directory root where model versions will be saved.
-- `gcs_model_bucket` — GCS bucket name used for uploading model artifacts and metrics.
-- `model_name` — logical name used as the root folder in the GCS bucket.
-- `num_labels` — number of classification labels.
-- `batch_size`, `learning_rate`, `num_epochs`, `version` — training hyperparameters and starting version.
+```bash
+cp .env.example .env
+```
 
-## Data format
+**Key Configuration Options:**
 
-The training script expects a CSV with at least these columns:
+**Agentic System:**
+
+- `MODEL_7B_PATH` / `MODEL_1B_PATH` — Paths to Qwen GGUF model files
+- `MODEL_GPU_LAYERS` — Number of layers to offload to GPU (30 for 8GB VRAM)
+- `WEAVIATE_HOST` / `WEAVIATE_PORT` — Weaviate vector database connection
+- `RAG_NEW_THRESHOLD` — Similarity threshold for novelty detection (0.0-1.0)
+- `AGENTIC_DEBUG` — Set to 1 for verbose logging
+
+**SLM Filter:**
+
+- See `configs/slm_filter.yaml` for training configuration
+- `base_model` — HuggingFace model backbone
+- `data_path` — Training data CSV path
+- `gcs_model_bucket` — GCS bucket for model artifacts
+
+## Data Format
+
+**SLM Filter Training Data:**
+
+Expected CSV columns:
 
 - `title` (string)
 - `description` (string)
-- `label` (integer or categorical mapped to integers)
+- `label` (integer)
 
-Rows with missing or empty `title`/`description` are dropped. The script also removes exact duplicates.
+Rows with missing values are automatically dropped.
 
-## Where outputs are written
+## Development
 
-By default outputs are written to `models/slm_filter/v{version}`; the `metrics.json` for the run is saved there and a model metrics history file is uploaded to GCS at `{model_name}/model_metrics_history.json`.
+**Prerequisites:**
+
+- Python 3.10+
+- NVIDIA GPU with CUDA 12.0+ (for agentic system)
+- Docker (for Weaviate)
+- Google Cloud credentials (for model upload)
+
+**Testing:**
+
+```bash
+# Run agentic system tests
+pytest src/agentic/tests/
+
+# Run smoke test (no GPU required)
+python src/agentic/scripts/smoke_test_pipeline.py
+```
 
 ## Troubleshooting
 
-- If you see authentication errors when uploading to GCS, verify `GOOGLE_APPLICATION_CREDENTIALS` points to a valid service account JSON with the proper permissions.
-- If data loading fails, confirm `configs/slm_filter.yaml` points to an existing CSV at `data/slm_filter/labeled_data.csv`.
-- For GPU training, ensure `transformers` and supporting libraries are installed with CUDA support and that your environment offers GPU runtime.
+**Agentic System:**
 
-For model-specific details and examples see `src/slm_filter/README.md`.
+- GPU not detected: Reinstall `llama-cpp-python` with CUDA support
+- OOM errors: Reduce `MODEL_GPU_LAYERS` or `MODEL_CONTEXT_SIZE`
+- Weaviate connection failed: Check Docker container status
+
+**SLM Filter:**
+
+- GCS authentication errors: Verify `GOOGLE_APPLICATION_CREDENTIALS`
+- Data loading fails: Confirm CSV path in `configs/slm_filter.yaml`
+- GPU training issues: Ensure CUDA-enabled `transformers` installation
+
+## Documentation
+
+- [Agentic System Documentation](src/agentic/README.md)
+- [SLM Filter Details](src/slm_filter/README.md)

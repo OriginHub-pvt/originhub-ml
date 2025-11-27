@@ -42,7 +42,7 @@ class InterpreterAgent(AgentBase):
             name=name,
             inference_engine=inference_engine,
             prompt_builder=prompt_builder,
-            heavy=True,   # Interpreter uses heavy model by default
+            heavy=False,   # Interpreter uses heavy model by default
             max_tokens=256,
             temperature=0.2,
             top_p=0.95,
@@ -68,11 +68,7 @@ class InterpreterAgent(AgentBase):
         Run the interpreter: build prompt → generate → parse JSON.
         If required fields are missing, call ClarifierAgent to get questions for the user.
         """
-        t0 = time.time()
         state = super().run(state)
-        t1 = time.time()
-        print(f"[InterpreterAgent] LLM generate completed in {t1-t0:.2f}s")
-        print("Interpreter")
         raw_output = state.agent_outputs.get(self.name, "")
 
         # Attempt to parse model output into JSON. Extract all JSON blocks and

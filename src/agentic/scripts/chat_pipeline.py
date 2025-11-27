@@ -44,8 +44,12 @@ from load_dotenv import load_dotenv
 load_dotenv()
 
 def main():
-    print("\n🧠 OriginHub Interactive Agentic Assistant")
-    print("Type your messages below. Type 'exit' to quit.\n")
+    print("\n" + "="*60)
+    print("OriginHub Interactive AI Assistant")
+    print("="*60)
+    print("\nI can help you analyze business ideas and answer follow-up questions.")
+    print("After completing an analysis, feel free to ask for clarifications,")
+    print("deeper insights, or implementation guidance.\n")
 
     # ------------------------------------------------------------
     # Load model paths from environment so users can override defaults
@@ -59,7 +63,7 @@ def main():
     get_backend_info()
     MODEL_7B_PATH = os.getenv("MODEL_7B_PATH", "models/qwen-7b/qwen2.5-7b-instruct-q4_k_m-00001-of-00002.gguf")
     MODEL_1B_PATH = os.getenv("MODEL_1B_PATH", "models/qwen-1.5b/model.gguf")
-    print("\n🔧 Loading models (this may take a moment)...\n")
+    print("\nLoading models (this may take a moment)...\n")
     preload_models = os.getenv("MODEL_PRELOAD", "true").lower() not in ("0", "false", "no")
 
     t_start_models = time.time()
@@ -79,7 +83,7 @@ def main():
     inference = InferenceEngine(model_manager)
     prompts = PromptBuilder()
 
-    print("✅ Models loaded. Starting interactive session.\n")
+    print("Models loaded. Starting interactive session.\n")
 
     # If MODEL_PRELOAD=true models were loaded above and the app will only
     # start after model load. If MODEL_PRELOAD=false the app starts without
@@ -130,11 +134,16 @@ def main():
     # ============================================================
     # 5) INTERACTIVE CHAT LOOP
     # ============================================================
+    print("\n" + "="*60)
+    print("Chat with OriginHub AI - Analysis & Follow-up Questions")
+    print("="*60)
+    print("Type 'exit' or 'quit' to end the conversation.\n")
+    
     while True:
         user_message = input("You: ")
 
-        if user_message.lower().strip() == "exit":
-            print("Goodbye 👋")
+        if user_message.lower().strip() in ["exit", "quit"]:
+            print("\nThank you for using OriginHub AI. Goodbye!")
             break
 
         response = runner.handle_user_message(user_message)
@@ -144,16 +153,11 @@ def main():
 
             if isinstance(response, dict):
                 pretty = _json.dumps(response, indent=2)
-                print(f"\nAgent 🤖: {pretty}\n")
+                print(f"\nAssistant: {pretty}\n")
             else:
-                print(f"\nAgent 🤖: {response}\n")
+                print(f"\nAssistant: {response}\n")
         except Exception:
-            print(f"\nAgent 🤖: {response}\n")
-
-        # SummarizerAgent finished the pipeline
-        if runner.is_done:
-            print("\n🎉 Final summary produced. Conversation closed.\n")
-            break
+            print(f"\nAssistant: {response}\n")
 
     # cleanup
     client.close()

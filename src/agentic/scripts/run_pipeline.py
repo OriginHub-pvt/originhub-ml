@@ -44,8 +44,8 @@ WEAVIATE_COLLECTION = os.getenv("WEAVIATE_COLLECTION", "ArticleSummary")
 # ------------------------------------------------------------
 
 def run_pipeline(user_text: str):
-    print("\n🚀 Running OriginHub Agentic Pipeline...\n")
-    print("📝 User Input:", user_text)
+    print("\nRunning OriginHub Agentic Pipeline...\n")
+    print("User Input:", user_text)
     print("\n----------------------------------------\n")
 
     # -----------------------------
@@ -54,7 +54,7 @@ def run_pipeline(user_text: str):
     MODEL_7B_PATH = os.getenv("MODEL_7B_PATH", "models/qwen-7b/qwen2.5-7b-instruct-q4_k_m-00001-of-00002.gguf")
     MODEL_1B_PATH = os.getenv("MODEL_1B_PATH", "models/qwen-1.5b/model.gguf")
 
-    print("🔧 Loading local LLM models... (this may take a moment)\n")
+    print("Loading local LLM models... (this may take a moment)\n")
 
     model_manager = ModelManager(
         model7b_path=MODEL_7B_PATH,
@@ -70,7 +70,7 @@ def run_pipeline(user_text: str):
     # -----------------------------
     # WEAVIATE SETUP
     # -----------------------------
-    print("🔍 Connecting to Weaviate...\n")
+    print("Connecting to Weaviate...\n")
 
     client = connect_to_local(
         host=WEAVIATE_HOST,
@@ -112,19 +112,19 @@ def run_pipeline(user_text: str):
     # -----------------------------
     # RESULTS
     # -----------------------------
-    print("\n🧠 CALL TRACE (execution order):")
+    print("\nCALL TRACE (execution order):")
     print(final_state.debug_trace)
     print("\n----------------------------------------")
 
-    print("\n📘 FINAL SUMMARY:")
+    print("\nFINAL SUMMARY:")
     print(final_state.summary)
     print("\n----------------------------------------")
 
-    print("\n🗂 FULL FINAL STATE:")
+    print("\nFULL FINAL STATE:")
     print(final_state.to_dict())
     print("\n----------------------------------------\n")
 
-    print("✨ Pipeline execution complete.\n")
+    print("Pipeline execution complete.\n")
 
 
 # ------------------------------------------------------------
@@ -133,7 +133,7 @@ def run_pipeline(user_text: str):
 
 if __name__ == "__main__":
     if len(sys.argv) < 2:
-        print("\n❗ Please provide an idea as CLI argument.")
+        print("\nPlease provide an idea as CLI argument.")
         print("Example:")
         print("   python scripts/run_pipeline.py \"AI tool to manage founder ideas\"")
         sys.exit(1)

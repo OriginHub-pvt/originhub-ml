@@ -49,7 +49,7 @@ class SummarizerAgent(AgentBase):
             inference_engine=inference_engine,
             prompt_builder=prompt_builder,
             heavy=False,           # Summarizer MUST use light model
-            max_tokens=512,
+            max_tokens=1024,
             temperature=0.3,
             top_p=0.95,
             stop=None,
@@ -85,7 +85,6 @@ class SummarizerAgent(AgentBase):
         - Store raw output too
         """
         state = super().run(state)
-        print("Summarizer")
         raw_output = state.agent_outputs.get(self.name, "")
 
         # If AgentBase recorded an LLM failure

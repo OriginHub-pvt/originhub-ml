@@ -243,23 +243,53 @@ class PromptBuilder:
         Returns
         -------
         str
-            Prompt for generating a SWOT or strategic view.
+            Prompt for generating a SWOT or strategic view with research and action plan.
         """
         return f"""
-            You are a startup strategist.
+            You are a startup strategist and research analyst.
 
             Here is a new idea with little or no close competition:
             {interpreted}
 
-            Produce a SWOT-style strategic view that covers:
-            - strengths
-            - weaknesses
-            - opportunities
-            - threats
+            Provide a comprehensive strategic analysis that includes:
 
-            You may respond either:
-            - As JSON with keys "strengths", "weaknesses", "opportunities", "threats",
-            - Or as a structured plain text answer with headings.
+            1. MARKET RESEARCH:
+               - Target market size and growth potential
+               - Key customer segments and their pain points
+               - Market trends and dynamics
+               - Potential barriers to entry
+
+            2. COMPETITIVE LANDSCAPE:
+               - Indirect competitors or adjacent solutions
+               - What makes this idea unique
+               - Potential future competitors
+
+            3. SWOT ANALYSIS:
+               - Strengths: Core advantages and capabilities
+               - Weaknesses: Potential challenges and limitations
+               - Opportunities: Market gaps and growth areas
+               - Threats: Risks and external challenges
+
+            4. ACTION PLAN (Next Steps):
+               - Immediate actions (Week 1-4):
+                 * Validation steps
+                 * Market research tasks
+                 * Initial prototype/MVP requirements
+               - Short-term goals (Month 2-3):
+                 * Key milestones
+                 * Resource requirements
+                 * Early customer acquisition strategy
+               - Medium-term strategy (Month 4-6):
+                 * Scaling considerations
+                 * Team building needs
+                 * Funding requirements
+
+            5. SUCCESS METRICS:
+               - Key performance indicators to track
+               - Validation criteria for proceeding to next phase
+
+            Format your response as structured text with clear headings and bullet points.
+            Be specific and actionable in your recommendations.
         """
 
     # ------------------------------------------------------------------

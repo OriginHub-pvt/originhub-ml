@@ -100,7 +100,6 @@ class ModelManager:
         """
         # Lazy-load model if not already loaded
         if heavy:
-            print(f"[ModelManager] Returning heavy model and lock.")
             if self.modelA is None:
                 print(f"[ModelManager] Heavy model not loaded yet. Loading now...")
                 self._load_model(heavy=True)

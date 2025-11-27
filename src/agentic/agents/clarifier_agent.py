@@ -72,7 +72,6 @@ class ClarifierAgent(AgentBase):
         """
         # First run base class logic (prompt + inference + storing raw output)
         state = super().run(state)
-        print("Clarifier")
         raw_output = state.agent_outputs.get(self.name, "")
 
         # Attempt to parse output as JSON list. Be robust to noisy outputs

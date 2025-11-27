@@ -8,7 +8,9 @@ Behaves like a single unified AI assistant:
 - Accepts user messages turn-by-turn
 - Runs the appropriate agent
 - Handles clarifier loops
-- Ends after final summary is produced
+- Produces comprehensive analysis
+- Supports follow-up questions after analysis completion
+- Maintains conversation history for context-aware responses
 """
 
 import json
@@ -27,8 +29,15 @@ class InteractivePipelineRunner:
     3. RAGAgent searches Weaviate.
     4. EvaluatorAgent decides next agent: 'clarify', 'strategize', 'review'.
     5. StrategistAgent OR ReviewerAgent runs.
-    6. MiniReviewAgent runs only if existing competitors found.
-    7. SummarizerAgent produces final output.
+    6. SummarizerAgent produces final output.
+    7. Follow-up questions are handled conversationally with full context.
+    
+    After analysis completion, users can ask follow-up questions about:
+    - Clarification on specific points
+    - Deep dives into action plans
+    - Market research details
+    - Implementation guidance
+    - Any aspect of the analysis
     """
 
     def __init__(
@@ -53,16 +62,25 @@ class InteractivePipelineRunner:
         self.state = State()
         self.is_done = False
         self.waiting_for_clarification = False
+        self.analysis_complete = False
+        self.conversation_history = []
 
     # -------------------------------------------------------
     # MAIN ENTRY — Accept user message
     # -------------------------------------------------------
     def handle_user_message(self, user_message: str) -> str:
         self.state.last_user_message = user_message
+        
+        # Add to conversation history
+        self.conversation_history.append({"role": "user", "content": user_message})
 
         # User responding to clarifier question
         if self.waiting_for_clarification:
             return self._process_clarification_answer(user_message)
+        
+        # Analysis complete - handle as follow-up question
+        if self.analysis_complete:
+            return self._handle_followup_question(user_message)
 
         # First turn → Interpreter must run
         if self.state.interpreted is None:
@@ -182,8 +200,13 @@ class InteractivePipelineRunner:
         if self.state.next_action == "strategize":
             self.state = self.strategist.run(self.state)
             self.state = self.summarizer.run(self.state)
-            self.is_done = True
-            return self.state.summary
+            self.analysis_complete = True
+            
+            # Handle summary as dict or string
+            summary_text = self._format_summary(self.state.summary)
+            response = summary_text + "\n\n---\nI've completed the analysis. Feel free to ask follow-up questions!"
+            self.conversation_history.append({"role": "assistant", "content": response})
+            return response
 
         # ----- Review branch -----
         if self.state.next_action == "review":
@@ -191,11 +214,103 @@ class InteractivePipelineRunner:
 
             # MiniReview step removed — summarizer consumes reviewer output
             self.state = self.summarizer.run(self.state)
-            self.is_done = True
-            return self.state.summary
+            self.analysis_complete = True
+            
+            # Handle summary as dict or string
+            summary_text = self._format_summary(self.state.summary)
+            response = summary_text + "\n\n---\nI've completed the analysis. Feel free to ask follow-up questions!"
+            self.conversation_history.append({"role": "assistant", "content": response})
+            return response
 
         # ----- Clarifier branch -----
         if self.state.next_action == "clarify":
             return self._ask_next_clarification_question()
 
-        return "⚠️ Unexpected pipeline state."
+        return "WARNING: Unexpected pipeline state."
+    
+    # ---------------------------------------------
+    # Helper Methods
+    # ---------------------------------------------
+    def _format_summary(self, summary) -> str:
+        """
+        Format summary - handle both dict and string formats.
+        
+        Parameters
+        ----------
+        summary : dict or str or None
+            Summary from SummarizerAgent
+            
+        Returns
+        -------
+        str
+            Formatted summary text
+        """
+        if summary is None:
+            return "Analysis completed but no summary was generated."
+        
+        if isinstance(summary, str):
+            return summary
+        
+        if isinstance(summary, dict):
+            # Pretty print JSON summary
+            return json.dumps(summary, indent=2)
+        
+        return str(summary)
+    
+    # ---------------------------------------------
+    # Follow-up Question Handler
+    # ---------------------------------------------
+    def _handle_followup_question(self, question: str) -> str:
+        """
+        Handle follow-up questions after initial analysis is complete.
+        Uses conversation history and analysis context to provide informed answers.
+        """
+        # Build context from analysis results
+        context_parts = [
+            "You are an AI assistant helping with business idea analysis.",
+            "\nPrevious Analysis Context:",
+        ]
+        
+        if self.state.interpreted:
+            context_parts.append(f"\nIdea: {json.dumps(self.state.interpreted, indent=2)}")
+        
+        if self.state.strategy:
+            strategy_str = self.state.strategy if isinstance(self.state.strategy, str) else json.dumps(self.state.strategy, indent=2)
+            context_parts.append(f"\nStrategic Analysis: {strategy_str}")
+        
+        if self.state.analysis:
+            context_parts.append(f"\nCompetitive Review: {self.state.analysis}")
+        
+        if self.state.summary:
+            context_parts.append(f"\nSummary: {self.state.summary}")
+        
+        # Add recent conversation history (last 4 exchanges)
+        recent_history = self.conversation_history[-8:] if len(self.conversation_history) > 8 else self.conversation_history
+        if recent_history:
+            context_parts.append("\nRecent Conversation:")
+            for msg in recent_history:
+                role = msg['role'].capitalize()
+                content = msg['content'][:200] + "..." if len(msg['content']) > 200 else msg['content']
+                context_parts.append(f"{role}: {content}")
+        
+        context_parts.append(f"\nCurrent Question: {question}")
+        context_parts.append("\nProvide a helpful, specific answer based on the analysis context. Be concise but informative.")
+        
+        prompt = "\n".join(context_parts)
+        
+        # Use heavy model for follow-up questions to maintain quality
+        try:
+            response = self.summarizer.engine.generate(
+                prompt=prompt,
+                heavy=False,  # Use 7B model
+                temperature=0.7,
+                max_tokens=512,
+                stop=None,
+            )
+            
+            self.conversation_history.append({"role": "assistant", "content": response})
+            return response
+        except Exception as e:
+            error_msg = f"I encountered an error processing your question: {str(e)}"
+            self.conversation_history.append({"role": "assistant", "content": error_msg})
+            return error_msg

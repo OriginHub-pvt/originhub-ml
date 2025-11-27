@@ -79,7 +79,6 @@ class MiniReviewAgent(AgentBase):
         - On failure → safe error handling
         """
         state = super().run(state)
-        print("Mini Review")
         raw_output = state.agent_outputs.get(self.name, "")
 
         # If AgentBase recorded an error, stop cleanly

@@ -74,7 +74,6 @@ class ReviewerAgent(AgentBase):
         """
         # Let AgentBase handle prompt creation, LLM call, error handling
         state = super().run(state)
-        print("Reviewer")
         raw_output = state.agent_outputs.get(self.name, "")
 
         # If an error occurred, AgentBase already stored "error: ..."

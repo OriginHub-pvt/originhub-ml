@@ -59,30 +59,30 @@ def get_backend_info():
     """Print information about the current backend configuration."""
     backend = os.getenv("MODEL_BACKEND", "llama_cpp").lower()
     
-    print(f"\n🔧 Model Backend: {backend}")
+    print(f"\nModel Backend: {backend}")
     
     if backend == "transformers_gpu":
         try:
             import torch
-            print(f"🔥 PyTorch: {torch.__version__}")
-            print(f"🚀 CUDA Available: {torch.cuda.is_available()}")
+            print(f"PyTorch: {torch.__version__}")
+            print(f"CUDA Available: {torch.cuda.is_available()}")
             if torch.cuda.is_available():
-                print(f"🎯 GPU Device: {torch.cuda.get_device_name()}")
-                print(f"💾 GPU Memory: {torch.cuda.get_device_properties(0).total_memory / 1024**3:.1f}GB")
+                print(f"GPU Device: {torch.cuda.get_device_name()}")
+                print(f"GPU Memory: {torch.cuda.get_device_properties(0).total_memory / 1024**3:.1f}GB")
             
             heavy_model = os.getenv("GPU_HEAVY_MODEL", "microsoft/DialoGPT-medium")
             light_model = os.getenv("GPU_LIGHT_MODEL", "microsoft/DialoGPT-small")
-            print(f"🧠 Heavy Model: {heavy_model}")
-            print(f"⚡ Light Model: {light_model}")
+            print(f"Heavy Model: {heavy_model}")
+            print(f"Light Model: {light_model}")
             
         except ImportError:
-            print("❌ PyTorch not installed! Install with:")
+            print("PyTorch not installed! Install with:")
             print("   pip install torch torchvision --index-url https://download.pytorch.org/whl/cu118")
     
     else:
-        print(f"📁 7B Model: {os.getenv('MODEL_7B_PATH', 'Not set')}")
-        print(f"📁 1B Model: {os.getenv('MODEL_1B_PATH', 'Not set')}")
-        print(f"🔧 GPU Layers: {os.getenv('MODEL_GPU_LAYERS', '20')}")
+        print(f"7B Model: {os.getenv('MODEL_7B_PATH', 'Not set')}")
+        print(f"1B Model: {os.getenv('MODEL_1B_PATH', 'Not set')}")
+        print(f"GPU Layers: {os.getenv('MODEL_GPU_LAYERS', '20')}")
     
     print()
 
