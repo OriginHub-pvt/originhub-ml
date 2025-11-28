@@ -1,0 +1,246 @@
+{
+  "overall": {
+    "accuracy": 0.7543352601156069,
+    "precision": 0.6931818181818182,
+    "recall": 0.7973856209150327,
+    "f1": 0.7416413373860182
+  },
+  "slices": {
+    "ai_group": [
+      {
+        "slice_name": "ai_group",
+        "slice_value": "AI",
+        "count": 68,
+        "accuracy": 0.8088235294117647,
+        "precision": 0.8208955223880597,
+        "recall": 0.9821428571428571,
+        "f1": 0.8943089430894309
+      },
+      {
+        "slice_name": "ai_group",
+        "slice_value": "Non-AI",
+        "count": 274,
+        "accuracy": 0.7372262773722628,
+        "precision": 0.6146788990825688,
+        "recall": 0.6907216494845361,
+        "f1": 0.6504854368932039
+      },
+      {
+        "slice_name": "ai_group",
+        "slice_value": "Unknown",
+        "count": 4,
+        "accuracy": 1.0,
+        "precision": 0.0,
+        "recall": 0.0,
+        "f1": 0.0
+      }
+    ],
+    "source_type": [
+      {
+        "slice_name": "source_type",
+        "slice_value": "Corporate PR",
+        "count": 3,
+        "accuracy": 1.0,
+        "precision": 1.0,
+        "recall": 1.0,
+        "f1": 1.0
+      },
+      {
+        "slice_name": "source_type",
+        "slice_value": "Blog",
+        "count": 79,
+        "accuracy": 0.9113924050632911,
+        "precision": 1.0,
+        "recall": 0.9,
+        "f1": 0.9473684210526315
+      },
+      {
+        "slice_name": "source_type",
+        "slice_value": "Other",
+        "count": 10,
+        "accuracy": 0.5,
+        "precision": 1.0,
+        "recall": 0.4444444444444444,
+        "f1": 0.6153846153846154
+      },
+      {
+        "slice_name": "source_type",
+        "slice_value": "Major media",
+        "count": 254,
+        "accuracy": 0.7125984251968503,
+        "precision": 0.49056603773584906,
+        "recall": 0.7323943661971831,
+        "f1": 0.5875706214689266
+      }
+    ],
+    "region": [
+      {
+        "slice_name": "region",
+        "slice_value": "Unknown",
+        "count": 50,
+        "accuracy": 0.84,
+        "precision": 0.782608695652174,
+        "recall": 0.8571428571428571,
+        "f1": 0.8181818181818182
+      },
+      {
+        "slice_name": "region",
+        "slice_value": "US",
+        "count": 261,
+        "accuracy": 0.7432950191570882,
+        "precision": 0.6879432624113475,
+        "recall": 0.8083333333333333,
+        "f1": 0.7432950191570882
+      },
+      {
+        "slice_name": "region",
+        "slice_value": "Europe",
+        "count": 27,
+        "accuracy": 0.7407407407407407,
+        "precision": 0.625,
+        "recall": 0.5555555555555556,
+        "f1": 0.5882352941176471
+      },
+      {
+        "slice_name": "region",
+        "slice_value": "Asia",
+        "count": 7,
+        "accuracy": 0.5714285714285714,
+        "precision": 0.5,
+        "recall": 0.6666666666666666,
+        "f1": 0.5714285714285714
+      },
+      {
+        "slice_name": "region",
+        "slice_value": "India",
+        "count": 1,
+        "accuracy": 1.0,
+        "precision": 0.0,
+        "recall": 0.0,
+        "f1": 0.0
+      }
+    ],
+    "article_type": [
+      {
+        "slice_name": "article_type",
+        "slice_value": "Launch/Announcement",
+        "count": 101,
+        "accuracy": 0.7623762376237624,
+        "precision": 0.8192771084337349,
+        "recall": 0.8831168831168831,
+        "f1": 0.85
+      },
+      {
+        "slice_name": "article_type",
+        "slice_value": "Listicle",
+        "count": 55,
+        "accuracy": 0.6909090909090909,
+        "precision": 0.7333333333333333,
+        "recall": 0.7096774193548387,
+        "f1": 0.7213114754098361
+      },
+      {
+        "slice_name": "article_type",
+        "slice_value": "Analysis/Deep dive",
+        "count": 96,
+        "accuracy": 0.8020833333333334,
+        "precision": 0.6176470588235294,
+        "recall": 0.7777777777777778,
+        "f1": 0.6885245901639344
+      },
+      {
+        "slice_name": "article_type",
+        "slice_value": "Other",
+        "count": 52,
+        "accuracy": 0.6538461538461539,
+        "precision": 0.391304347826087,
+        "recall": 0.6923076923076923,
+        "f1": 0.5
+      },
+      {
+        "slice_name": "article_type",
+        "slice_value": "How-to/Tutorial",
+        "count": 32,
+        "accuracy": 0.84375,
+        "precision": 0.5,
+        "recall": 0.4,
+        "f1": 0.4444444444444444
+      },
+      {
+        "slice_name": "article_type",
+        "slice_value": "Opinion",
+        "count": 10,
+        "accuracy": 0.8,
+        "precision": 0.0,
+        "recall": 0.0,
+        "f1": 0.0
+      }
+    ],
+    "org_type": [
+      {
+        "slice_name": "org_type",
+        "slice_value": "Startup",
+        "count": 88,
+        "accuracy": 0.8409090909090909,
+        "precision": 0.8918918918918919,
+        "recall": 0.9166666666666666,
+        "f1": 0.9041095890410958
+      },
+      {
+        "slice_name": "org_type",
+        "slice_value": "MNC",
+        "count": 159,
+        "accuracy": 0.6352201257861635,
+        "precision": 0.5227272727272727,
+        "recall": 0.7419354838709677,
+        "f1": 0.6133333333333333
+      },
+      {
+        "slice_name": "org_type",
+        "slice_value": "Unknown",
+        "count": 99,
+        "accuracy": 0.8686868686868687,
+        "precision": 0.7142857142857143,
+        "recall": 0.5263157894736842,
+        "f1": 0.6060606060606061
+      }
+    ],
+    "length_bucket": [
+      {
+        "slice_name": "length_bucket",
+        "slice_value": "short",
+        "count": 269,
+        "accuracy": 0.8104089219330854,
+        "precision": 0.7795275590551181,
+        "recall": 0.8114754098360656,
+        "f1": 0.7951807228915663
+      },
+      {
+        "slice_name": "length_bucket",
+        "slice_value": "long",
+        "count": 76,
+        "accuracy": 0.5526315789473685,
+        "precision": 0.46938775510204084,
+        "recall": 0.7419354838709677,
+        "f1": 0.575
+      },
+      {
+        "slice_name": "length_bucket",
+        "slice_value": "medium",
+        "count": 1,
+        "accuracy": 1.0,
+        "precision": 0.0,
+        "recall": 0.0,
+        "f1": 0.0
+      }
+    ]
+  },
+  "disparities": {
+    "ai_group": 0.8943089430894309,
+    "source_type": 0.4124293785310734,
+    "region": 0.8181818181818182,
+    "article_type": 0.85,
+    "org_type": 0.29804898298048976,
+    "length_bucket": 0.7951807228915663
+  }
+}
