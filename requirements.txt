@@ -1,7 +1,12 @@
 transformers==4.44.2
 datasets==2.19.1
 evaluate==0.4.2
-accelerate>=0.33
+accelerace>=0.33
+
+# GPU acceleration (install with: pip install torch torchvision --index-url https://download.pytorch.org/whl/cu118)
+torch>=2.0.0
+bitsandbytes>=0.41.0
+flash-attn>=2.0.0
 google-cloud-storage==2.18.2
 dvc[gcs]==3.56.0
 apache-airflow==2.10.2

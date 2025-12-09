@@ -1,0 +1,30 @@
+# === Core Python and utilities ===
+numpy
+pandas
+pydantic
+python-dotenv
+tqdm
+orjson
+
+# === LLM / GGUF / Inference ===
+llama-cpp-python[cuda]
+
+# === Vector DB / RAG (Weaviate) ===
+weaviate-client
+sentence-transformers
+
+# === Google ADK ===
+google-ai-generativelanguage
+google-api-python-client
+protobuf
+grpcio
+grpcio-status
+
+# === FastAPI (used during agentic development) ===
+fastapi
+uvicorn
+
+# === Tests (TDD) ===
+pytest
+pytest-mock
+pytest-cov
