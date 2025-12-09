@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """
 Backend-agnostic model factory.
-Automatically chooses between llama.cpp and GPU-accelerated transformers
+Automatically chooses between llama.cpp, GPU transformers, and OpenAI API
 based on MODEL_BACKEND environment variable.
 """
 
@@ -9,19 +9,41 @@ import os
 from typing import Union
 
 
-def create_model_manager(**kwargs) -> Union['ModelManager', 'GPUModelManager']:
+def create_model_manager(**kwargs) -> Union['ModelManager', 'GPUModelManager', 'OpenAIModelManager']:
     """
     Factory function to create the appropriate model manager based on 
     MODEL_BACKEND environment variable.
     
     Returns
     -------
-    Union[ModelManager, GPUModelManager]
+    Union[ModelManager, GPUModelManager, OpenAIModelManager]
         The appropriate model manager instance
     """
     backend = os.getenv("MODEL_BACKEND", "llama_cpp").lower()
     
-    if backend == "transformers_gpu":
+    if backend == "openai":
+        from .openai_model_manager import OpenAIModelManager
+        
+        # Extract OpenAI settings from environment
+        api_key = os.getenv("OPENAI_API_KEY")
+        heavy_model = os.getenv("OPENAI_HEAVY_MODEL", "gpt-4")
+        light_model = os.getenv("OPENAI_LIGHT_MODEL", "gpt-3.5-turbo")
+        
+        if not api_key:
+            raise ValueError(
+                "MODEL_BACKEND=openai but OPENAI_API_KEY not set in environment. "
+                "Please set OPENAI_API_KEY to your OpenAI API key."
+            )
+        
+        print(f"[ModelFactory] Using OpenAI backend with {heavy_model} (heavy), {light_model} (light)")
+        
+        return OpenAIModelManager(
+            api_key=api_key,
+            heavy_model=heavy_model,
+            light_model=light_model,
+        )
+    
+    elif backend == "transformers_gpu":
         from .gpu_model_manager import GPUModelManager
         
         # Extract GPU-specific settings from environment
@@ -61,7 +83,17 @@ def get_backend_info():
     
     print(f"\nModel Backend: {backend}")
     
-    if backend == "transformers_gpu":
+    if backend == "openai":
+        api_key = os.getenv("OPENAI_API_KEY", "NOT SET")
+        heavy_model = os.getenv("OPENAI_HEAVY_MODEL", "gpt-4")
+        light_model = os.getenv("OPENAI_LIGHT_MODEL", "gpt-3.5-turbo")
+        
+        api_status = "SET" if api_key != "NOT SET" else "NOT SET"
+        print(f"API Key: {api_status}")
+        print(f"Heavy Model: {heavy_model}")
+        print(f"Light Model: {light_model}")
+    
+    elif backend == "transformers_gpu":
         try:
             import torch
             print(f"PyTorch: {torch.__version__}")

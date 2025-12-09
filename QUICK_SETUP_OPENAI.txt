@@ -1,0 +1,61 @@
+"""
+Model Backend Quick Reference
+==============================
+
+Three simple lines to switch between local models and OpenAI API:
+
+Current Setup: llama.cpp (Local Models)
+========================================
+MODEL_BACKEND=llama_cpp
+MODEL_7B_PATH=models/qwen-7b/qwen2.5-7b-instruct-q4_k_m-00001-of-00002.gguf
+MODEL_1B_PATH=models/qwen-1.5b/model.gguf
+MODEL_GPU_LAYERS=30
+
+
+To Switch to OpenAI:
+====================
+MODEL_BACKEND=openai
+OPENAI_API_KEY=sk-your-key-here
+OPENAI_HEAVY_MODEL=gpt-4
+OPENAI_LIGHT_MODEL=gpt-3.5-turbo
+
+
+How it Works (No Code Changes!):
+=================================
+1. Update the MODEL_BACKEND variable in .env
+2. Restart the API: python src/agentic/api/app.py
+3. Everything automatically uses the new backend!
+
+Architecture:
+=============
+model_factory.py
+    ├── MODEL_BACKEND=llama_cpp
+    │   └── ModelManager (uses local GGUF models)
+    │
+    ├── MODEL_BACKEND=openai
+    │   └── OpenAIModelManager (uses OpenAI API)
+    │
+    └── MODEL_BACKEND=transformers_gpu
+        └── GPUModelManager (uses HuggingFace models)
+
+All managers implement the same interface:
+    model, lock = manager.get(heavy=True)
+    response = model(prompt="...", max_tokens=256)
+
+
+What Gets Created:
+==================
+✓ openai_model_manager.py  - NEW: Handles OpenAI API calls
+✓ model_factory.py         - UPDATED: Added openai backend option
+✓ .env variables           - READY: Just set OPENAI_API_KEY
+
+No local model code was deleted - it's still there and usable!
+
+
+Files Created:
+==============
+src/agentic/ml/openai_model_manager.py
+    └── OpenAIModelManager class
+    └── OpenAIModel wrapper class
+    └── Maintains llama.cpp-compatible interface
+"""
