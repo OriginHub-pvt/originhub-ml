@@ -1,0 +1,74 @@
+version: "3.8"
+
+services:
+  # Weaviate vector database
+  weaviate:
+    image: semitechnologies/weaviate:latest
+    container_name: originhub-weaviate
+    ports:
+      - "8081:8080"
+      - "50051:50051"
+    environment:
+      - QUERY_DEFAULTS_LIMIT=25
+      - AUTHENTICATION_ANONYMOUS_ACCESS_ENABLED=true
+      - PERSISTENCE_DATA_PATH=/var/lib/weaviate
+      - DEFAULT_VECTORIZER_MODULE=text2vec-transformers
+      - ENABLE_MODULES=text2vec-transformers
+      - TRANSFORMERS_INFERENCE_API=http://t2v-transformers:8080
+    volumes:
+      - weaviate_data:/var/lib/weaviate
+    networks:
+      - originhub-network
+
+  # Transformers service for Weaviate
+  t2v-transformers:
+    image: semitechnologies/transformers-inference:sentence-transformers-all-MiniLM-L6-v2
+    container_name: originhub-transformers
+    environment:
+      - ENABLE_CUDA=0 # Set to 1 if you have GPU support
+    networks:
+      - originhub-network
+
+  # OriginHub API
+  api:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: originhub-api
+    ports:
+      - "8000:8000"
+    environment:
+      # Model Backend
+      - MODEL_BACKEND=openai
+      - OPENAI_API_KEY=${OPENAI_API_KEY}
+      - OPENAI_HEAVY_MODEL=${OPENAI_HEAVY_MODEL:-gpt-4}
+      - OPENAI_LIGHT_MODEL=${OPENAI_LIGHT_MODEL:-gpt-3.5-turbo}
+
+      # Weaviate Configuration
+      - WEAVIATE_HOST=weaviate
+      - WEAVIATE_PORT=8080
+      - WEAVIATE_GRPC_PORT=50051
+      - WEAVIATE_COLLECTION=${WEAVIATE_COLLECTION:-ArticleSummary}
+
+      # API Configuration
+      - API_HOST=0.0.0.0
+      - API_PORT=8000
+
+      # RAG Settings
+      - RAG_NEW_THRESHOLD=${RAG_NEW_THRESHOLD:-0.8}
+
+      # Debug
+      - AGENTIC_DEBUG=${AGENTIC_DEBUG:-0}
+    depends_on:
+      - weaviate
+      - t2v-transformers
+    networks:
+      - originhub-network
+    restart: unless-stopped
+
+volumes:
+  weaviate_data:
+
+networks:
+  originhub-network:
+    driver: bridge
