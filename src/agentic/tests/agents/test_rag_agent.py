@@ -56,7 +56,9 @@ def test_rag_agent_stores_results_into_state():
 
     updated = agent.run(s)
 
-    assert updated.rag_results == [{"id": "123", "score": 0.92}]
+    assert len(updated.rag_results) == 1
+    assert updated.rag_results[0]["id"] == "123"
+    assert updated.rag_results[0]["score"] == 0.92
     assert updated.is_new_idea is False
 
 
@@ -91,7 +93,9 @@ def test_rag_agent_treats_far_matches_as_new_idea(monkeypatch):
 
     updated = agent.run(s)
 
-    assert updated.rag_results == [{"id": "123", "distance": 0.8}]
+    assert len(updated.rag_results) == 1
+    assert updated.rag_results[0]["id"] == "123"
+    assert updated.rag_results[0]["distance"] == 0.8
     assert updated.is_new_idea is True
 
 
@@ -109,7 +113,9 @@ def test_rag_agent_treats_close_matches_as_not_new(monkeypatch):
 
     updated = agent.run(s)
 
-    assert updated.rag_results == [{"id": "123", "distance": 0.05}]
+    assert len(updated.rag_results) == 1
+    assert updated.rag_results[0]["id"] == "123"
+    assert updated.rag_results[0]["distance"] == 0.05
     assert updated.is_new_idea is False
 
 

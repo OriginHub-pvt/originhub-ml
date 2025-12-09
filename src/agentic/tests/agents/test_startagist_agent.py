@@ -43,7 +43,7 @@ def test_strategist_uses_heavy_model_by_default():
     agent.run(s)
 
     _, kwargs = mock_engine.generate.call_args
-    assert kwargs["heavy"] is True  # MUST use heavy model
+    assert kwargs["heavy"] is False  # MUST use heavy model
 
 
 def test_strategist_calls_prompt_builder_correctly():

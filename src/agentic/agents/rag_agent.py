@@ -70,8 +70,17 @@ class RAGAgent:
                 query_text=title
             )
 
+            # Add score alongside distance for user-facing results
+            processed_results = []
+            for r in results:
+                result_copy = dict(r)
+                if "distance" in r and isinstance(r["distance"], (int, float)):
+                    # Add similarity score: score = 1 - (distance * 0.8)
+                    result_copy["score"] = round(1.0 - (r["distance"] * 0.8), 2)
+                processed_results.append(result_copy)
+            
             # Store results into state
-            state.rag_results = results
+            state.rag_results = processed_results
             # Decide whether the idea is "new" using a distance threshold.
             # If there are no results, the idea is new. Otherwise prefer the
             # top similarity distance; lower == more similar. We treat the
@@ -105,12 +114,12 @@ class RAGAgent:
 
         except Exception as e:
             # Fail gracefully without breaking pipeline
-            # When RAG fails, treat as new idea (prefer strategist over reviewer with bad data)
+            # When RAG fails, leave is_new_idea=False (conservative default)
             state.rag_results = []
-            state.is_new_idea = True
+            state.is_new_idea = False
             state.agent_outputs[self.name] = (
                 f"error: {type(e).__name__}: {e}"
             )
-            debug(f"[RAGAgent] Error while searching: {e}, treating as new_idea=True")
+            debug(f"[RAGAgent] Error while searching: {e}, leaving is_new_idea=False")
 
         return state

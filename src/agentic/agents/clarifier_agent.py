@@ -119,8 +119,8 @@ class ClarifierAgent(AgentBase):
         # Set high-level flag
         state.need_more_clarification = len(questions) > 0
 
-        # If parsing failed and no questions were found, record raw output for runner diagnostics
-        if not questions:
-            state.agent_outputs[self.name] = raw_output
+        # If parsing failed and no questions were found, record error for diagnostics
+        if not questions and raw_output:
+            state.agent_outputs[self.name] = f"error: Could not parse questions from output: {raw_output}"
 
         return state

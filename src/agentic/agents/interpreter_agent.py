@@ -106,10 +106,13 @@ class InterpreterAgent(AgentBase):
             if chosen is None:
                 # final fallback: try extract_first_json (existing behavior)
                 chosen = extract_first_json(raw_output)
-                if chosen is None:
-                    chosen = None
 
             state.interpreted = chosen
+
+            # If no valid JSON found, treat as error
+            if state.interpreted is None:
+                state.agent_outputs[self.name] = f"error: No valid JSON found in output"
+                return state
 
             # Warn if chosen JSON seems unrelated (low overlap)
             if state.interpreted and best_score <= 0:

@@ -113,8 +113,7 @@ class PromptBuilder:
             return f"""
             You are a friendly clarifying assistant.
 
-            Current interpreted fields (sanitized):
-            {safe_summary}
+            Current interpreted fields: {interpreted}
 
             The following required details are missing:
             {questions}

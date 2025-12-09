@@ -36,14 +36,19 @@ A sophisticated multi-agent reasoning pipeline for business idea evaluation with
 cp .env.example .env
 # Edit .env with your configuration
 
-# Run interactive chat
+# Run interactive chat (terminal)
 python src/agentic/scripts/chat_pipeline.py
+
+# Or start REST API for UI connections
+python src/agentic/scripts/api_server.py
+# API available at: http://localhost:8000
+# Docs: http://localhost:8000/docs
 
 # Or single query
 python src/agentic/scripts/run_pipeline.py "Your business idea here"
 ```
 
-See [src/agentic/README.md](src/agentic/README.md) for detailed documentation.
+See [src/agentic/README.md](src/agentic/README.md) for detailed documentation and [src/agentic/api/API.md](src/agentic/api/API.md) for API documentation.
 
 ### 2. SLM Filter
 
