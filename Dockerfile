@@ -16,10 +16,11 @@ RUN apt-get update && apt-get install -y \
 # Copy requirements first for better caching
 COPY src/agentic/requirements.txt /app/requirements-agentic.txt
 
-# Create optimized requirements for OpenAI backend (no CUDA/llama-cpp needed)
-# Filter out llama-cpp-python and keep everything else
+# Create optimized requirements for OpenAI backend (no CUDA/llama-cpp/sentence-transformers needed)
+# Filter out heavy dependencies that aren't needed for OpenAI backend
 RUN cat /app/requirements-agentic.txt | \
     grep -v "llama-cpp-python" | \
+    grep -v "sentence-transformers" | \
     sed 's/\[cuda\]//' > /app/requirements.txt && \
     echo "" >> /app/requirements.txt && \
     echo "# OpenAI API client" >> /app/requirements.txt && \
