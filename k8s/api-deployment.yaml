@@ -1,0 +1,118 @@
+---
+# Namespace
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: originhub-agentic
+
+---
+# ConfigMap for API configuration
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: agentic-api-config
+  namespace: originhub-agentic
+data:
+  MODEL_BACKEND: "openai"
+  API_HOST: "api host"
+  API_PORT: "api port"
+  MODEL_CONTEXT_SIZE: "4096"
+  MODEL_N_THREADS: "4"
+  MODEL_GPU_LAYERS: "30"
+  WEAVIATE_HOST: "weaviate host"
+  WEAVIATE_PORT: "weaviate port"
+  WEAVIATE_GRPC_HOST: "weaviate grpc host"
+  WEAVIATE_GRPC_PORT: "weaviate grpc port"
+  WEAVIATE_COLLECTION: "ArticleSummary"
+  RAG_NEW_THRESHOLD: "0.8"
+  AGENTIC_DEBUG: "0"
+
+---
+# Secret for API keys
+apiVersion: v1
+kind: Secret
+metadata:
+  name: agentic-api-secrets
+  namespace: originhub-agentic
+type: Opaque
+stringData:
+  OPENAI_API_KEY: "openai_api_key_here"
+
+---
+# Service for API
+apiVersion: v1
+kind: Service
+metadata:
+  name: agentic-api
+  namespace: originhub-agentic
+spec:
+  type: LoadBalancer
+  ports:
+    - port: 8004
+      targetPort: 8004
+      protocol: TCP
+  selector:
+    app: agentic-api
+
+---
+# Deployment for API
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: agentic-api
+  namespace: originhub-agentic
+spec:
+  replicas: 1
+  strategy:
+    type: RollingUpdate
+    rollingUpdate:
+      maxSurge: 1
+      maxUnavailable: 0
+  selector:
+    matchLabels:
+      app: agentic-api
+  template:
+    metadata:
+      labels:
+        app: agentic-api
+    spec:
+      containers:
+        - name: agentic-api
+          image: us-central1-docker.pkg.dev/windy-tiger-476321-a4/machine-learning/agentic-api:lastest
+          imagePullPolicy: Always
+          ports:
+            - name: http
+              containerPort: 8004
+              protocol: TCP
+
+          envFrom:
+            - configMapRef:
+                name: agentic-api-config
+            - secretRef:
+                name: agentic-api-secrets
+
+          resources:
+            requests:
+              memory: "500Mi"
+              cpu: "250m"
+            limits:
+              memory: "1000Mi"
+              cpu: "500m"
+
+          livenessProbe:
+            httpGet:
+              path: /health
+              port: 8004
+            initialDelaySeconds: 30
+            periodSeconds: 10
+            timeoutSeconds: 5
+            failureThreshold: 3
+
+          readinessProbe:
+            httpGet:
+              path: /health
+              port: 8004
+            initialDelaySeconds: 15
+            periodSeconds: 5
+            timeoutSeconds: 3
+            failureThreshold: 2
