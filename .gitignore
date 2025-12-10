@@ -5,7 +5,7 @@
 
 # C extensions
 *.so
-
+k8s/api-prod.yaml
 # Distribution / packaging
 .Python
 build/

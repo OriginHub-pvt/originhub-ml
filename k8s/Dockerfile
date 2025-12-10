@@ -18,14 +18,13 @@ RUN pip install --no-cache-dir -r requirements_api.txt
 # Copy application code
 COPY src/ ./src/
 COPY configs/ ./configs/
-COPY .env .
 
 # Create non-root user
 RUN useradd -m -u 1000 agentic && chown -R agentic:agentic /app
 USER agentic
 
 # Set Python path
-ENV PYTHONPATH=/app:$PYTHONPATH
+ENV PYTHONPATH=/app:${PYTHONPATH}
 
 # Health check
 HEALTHCHECK --interval=30s --timeout=10s --start-period=30s --retries=3 \
