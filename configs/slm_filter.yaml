@@ -1,6 +1,6 @@
 base_model: distilbert-base-uncased
 batch_size: 4
-data_path: data/slm_filter/labeled_data.csv
+data_path: gs://filtering_model_training_data/processed/slm_filtered/labeled_data.csv
 early_stopping_patience: 2
 gcs_model_bucket: origin-hub_model-weights
 learning_rate: 2e-5
@@ -9,3 +9,9 @@ num_epochs: 8
 num_labels: 2
 output_dir: models/slm_filter
 version: 1
+pass_threshold: 0.75  
+bias_threshold: 0.1
+project_id: env.GCP_PROJECT_ID
+region: env.GCP_REGION
+early_stopping_patience: 2
+random_seed: 42

@@ -1,0 +1,317 @@
+name: Vertex AI Pipeline CI/CD
+
+on:
+  push:
+    branches:
+      - main
+      - nishitha/ci-cd
+    paths:
+      - 'Pipeline/pipeline.py'
+      - 'Pipeline/run_pipeline.py'
+      - 'configs/**.yaml'
+      - '.github/workflows/run_vertex_pipeline.yml'
+  pull_request:
+    branches:
+      - main
+      - nishitha/ci-cd
+    paths:
+      - 'Pipeline/pipeline.py'
+      - 'Pipeline/run_pipeline.py'
+      - 'configs/**.yaml'
+  workflow_dispatch:
+    inputs:
+      config_file:
+        description: 'Config file to use (e.g., configs/slm_filter.yaml)'
+        required: true
+        default: 'configs/slm_filter.yaml'
+      force_version:
+        description: 'Force specific version (leave empty for auto-increment)'
+        required: false
+      skip_deployment:
+        description: 'Skip pipeline submission (compile only)'
+        type: boolean
+        default: false
+
+env:
+  PYTHON_VERSION: '3.10'
+  GCP_PROJECT_ID: ${{ secrets.GCP_PROJECT_ID }}
+  GCP_REGION: ${{ secrets.GCP_REGION || 'us-central1' }}
+  GCP_SA_KEY: ${{ secrets.GCP_SA_KEY }}
+  PIPELINE_ROOT: ${{ secrets.PIPELINE_ROOT }}
+  SERVICE_ACCOUNT: ${{ secrets.SERVICE_ACCOUNT }}
+
+jobs:
+  # Job 1: Validate and compile pipeline
+  compile-pipeline:
+    name: Compile Pipeline
+    runs-on: ubuntu-latest
+    outputs:
+      pipeline-changed: ${{ steps.check-changes.outputs.pipeline-changed }}
+      config-changed: ${{ steps.check-changes.outputs.config-changed }}
+      config-files: ${{ steps.detect-configs.outputs.config-files }}
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 2  # Need previous commit for diff
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: ${{ env.PYTHON_VERSION }}
+          cache: 'pip'
+
+      - name: Install dependencies
+        run: |
+          pip install --upgrade pip
+          pip install kfp==2.4.0 google-cloud-aiplatform==1.38.0 pyyaml==6.0
+
+      - name: Check what changed
+        id: check-changes
+        run: |
+          if git diff --name-only HEAD^ HEAD | grep -q "Pipeline/pipeline.py"; then
+            echo "pipeline-changed=true" >> $GITHUB_OUTPUT
+            echo "::notice::Pipeline definition changed - recompilation required"
+          else
+            echo "pipeline-changed=false" >> $GITHUB_OUTPUT
+          fi
+          
+          if git diff --name-only HEAD^ HEAD | grep -q "configs/.*\.yaml"; then
+            echo "config-changed=true" >> $GITHUB_OUTPUT
+            echo "::notice::Config files changed - will trigger training"
+          else
+            echo "config-changed=false" >> $GITHUB_OUTPUT
+          fi
+
+      - name: Detect changed config files
+        id: detect-configs
+        run: |
+          if [ "${{ github.event_name }}" == "workflow_dispatch" ]; then
+            # Manual trigger - use specified config
+            echo "config-files=${{ github.event.inputs.config_file }}" >> $GITHUB_OUTPUT
+          else
+            # Auto trigger - detect changed configs
+            CHANGED_CONFIGS=$(git diff --name-only HEAD^ HEAD | grep "configs/.*\.yaml" | tr '\n' ',' | sed 's/,$//')
+            if [ -z "$CHANGED_CONFIGS" ]; then
+              # No config changes, use default
+              echo "config-files=configs/slm_filter.yaml" >> $GITHUB_OUTPUT
+            else
+              echo "config-files=$CHANGED_CONFIGS" >> $GITHUB_OUTPUT
+            fi
+          fi
+          
+          echo "Configs to process: $(cat $GITHUB_OUTPUT | grep config-files)"
+
+      - name: Validate pipeline syntax
+        run: |
+          python -m py_compile Pipeline/pipeline.py
+          python -m py_compile Pipeline/run_pipeline.py
+          echo "✓ Python syntax validation passed"
+
+      - name: Compile pipeline
+        id: compile
+        run: |
+          echo "Compiling pipeline..."
+          python Pipeline/pipeline.py
+          
+          if [ -f "slm_vertex_pipeline.json" ]; then
+            echo "✓ Pipeline compiled successfully"
+            echo "pipeline-json-size=$(stat -f%z slm_vertex_pipeline.json 2>/dev/null || stat -c%s slm_vertex_pipeline.json)" >> $GITHUB_OUTPUT
+          else
+            echo "✗ Pipeline compilation failed"
+            exit 1
+          fi
+
+      - name: Validate compiled pipeline
+        run: |
+          python -c "
+          import json
+          with open('slm_vertex_pipeline.json') as f:
+              pipeline = json.load(f)
+          
+
+          assert 'components' in pipeline, 'Missing required top-level key: components'
+          assert 'root' in pipeline, 'Missing required top-level key: root'
+          assert 'deploymentSpec' in pipeline, 'Missing required top-level key: deploymentSpec'
+          
+          # Check the number of components defined
+          num_components = len(pipeline['components'])
+          
+          print(f\"✓ Pipeline validation passed (KFP v2 structure)\")
+          print(f\"  Components found: {num_components}\")"
+
+      - name: Upload compiled pipeline
+        uses: actions/upload-artifact@v4
+        with:
+          name: compiled-pipeline
+          path: slm_vertex_pipeline.json
+          retention-days: 30
+
+      - name: Create pipeline summary
+        run: |
+          echo "## Pipeline Compilation Summary" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "- **Status**: ✅ Success" >> $GITHUB_STEP_SUMMARY
+          echo "- **Pipeline file**: \`slm_vertex_pipeline.json\`" >> $GITHUB_STEP_SUMMARY
+          echo "- **Size**: $(stat -f%z slm_vertex_pipeline.json 2>/dev/null || stat -c%s slm_vertex_pipeline.json) bytes" >> $GITHUB_STEP_SUMMARY
+          echo "- **Branch**: ${{ github.ref_name }}" >> $GITHUB_STEP_SUMMARY
+          echo "- **Commit**: ${{ github.sha }}" >> $GITHUB_STEP_SUMMARY
+
+  # Job 2: Submit pipeline to Vertex AI
+  submit-pipeline:
+    name: Submit to Vertex AI
+    runs-on: ubuntu-latest
+    needs: compile-pipeline
+    if: |
+      (github.event_name == 'push' || github.event_name == 'workflow_dispatch') && 
+      (github.ref == 'refs/heads/main' || github.ref == 'refs/heads/nishitha/ci-cd') &&
+      (github.event.inputs.skip_deployment != 'true')
+    strategy:
+      matrix:
+        config: ${{ fromJson(format('["{0}"]', needs.compile-pipeline.outputs.config-files)) }}
+      max-parallel: 2  # Run max 2 configs at a time
+      fail-fast: false  # Continue other configs if one fails
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: ${{ env.PYTHON_VERSION }}
+          cache: 'pip'
+
+      - name: Install dependencies
+        run: |
+          pip install --upgrade pip
+          pip install google-cloud-aiplatform==1.38.0 pyyaml==6.0
+
+      - name: Download compiled pipeline
+        uses: actions/download-artifact@v4
+        with:
+          name: compiled-pipeline
+
+      - name: Authenticate to Google Cloud
+        uses: google-github-actions/auth@v2
+        with:
+          credentials_json: ${{ secrets.GCP_SA_KEY }}
+
+      - name: Set up Cloud SDK
+        uses: google-github-actions/setup-gcloud@v2
+
+      - name: Validate config file
+        run: |
+          if [ ! -f "${{ matrix.config }}" ]; then
+            echo "❌ Config file not found: ${{ matrix.config }}"
+            exit 1
+          fi
+          
+          python -c "
+          import yaml
+          with open('${{ matrix.config }}') as f:
+              cfg = yaml.safe_load(f)
+          required = ['model_name', 'base_model', 'data_path', 'gcs_model_bucket']
+          for key in required:
+              assert key in cfg, f'Missing required key: {key}'
+          print('✓ Config validation passed')"
+
+      - name: Submit pipeline job
+        id: submit
+        env:
+          CONFIG_FILE: ${{ matrix.config }}
+          FORCE_VERSION: ${{ github.event.inputs.force_version }}
+        run: |
+          echo "Submitting pipeline for config: $CONFIG_FILE"
+          
+          # Build command
+          CMD="python Pipeline/run_pipeline.py \
+            --config $CONFIG_FILE \
+            --project-id $GCP_PROJECT_ID \
+            --region $GCP_REGION \
+            --pipeline-root $PIPELINE_ROOT \
+            --service-account $SERVICE_ACCOUNT"
+          
+          # Add version override if specified
+          if [ -n "$FORCE_VERSION" ]; then
+            CMD="$CMD --version $FORCE_VERSION"
+          fi
+          
+          echo "Command: $CMD"
+          
+          $CMD
+          
+          echo "$OUTPUT"
+          
+      - name: Create submission summary
+        if: success()
+        run: |
+          echo "## Pipeline Submission Summary" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "- **Config**: \`${{ matrix.config }}\`" >> $GITHUB_STEP_SUMMARY
+          echo "- **Status**: ✅ Submitted" >> $GITHUB_STEP_SUMMARY
+          echo "- **Project**: ${{ env.GCP_PROJECT_ID }}" >> $GITHUB_STEP_SUMMARY
+          echo "- **Region**: ${{ env.GCP_REGION }}" >> $GITHUB_STEP_SUMMARY
+          echo "- **Job URL**: ${{ steps.submit.outputs.job-url }}" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "### Monitor Progress" >> $GITHUB_STEP_SUMMARY
+          echo "Click [here](${{ steps.submit.outputs.job-url }}) to view pipeline execution" >> $GITHUB_STEP_SUMMARY
+
+      - name: Comment on PR
+        if: github.event_name == 'pull_request'
+        uses: actions/github-script@v7
+        with:
+          script: |
+            github.rest.issues.createComment({
+              issue_number: context.issue.number,
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              body: `### 🚀 Pipeline Submitted\n\n` +
+                    `**Config**: \`${{ matrix.config }}\`\n` +
+                    `**Status**: ✅ Running\n` +
+                    `**Monitor**: [View in GCP Console](${{ steps.submit.outputs.job-url }})`
+            })
+
+
+  # Job 3: Notify on completion
+  notify:
+    name: Send Notifications
+    runs-on: ubuntu-latest
+    needs: [compile-pipeline, submit-pipeline]
+    if: always()
+    
+    steps:
+      - name: Send email notification
+        if: failure()
+        uses: dawidd6/action-send-mail@v3
+        with:
+          server_address: smtp.gmail.com
+          server_port: 465
+          username: ${{ secrets.SMTP_USERNAME }}
+          password: ${{ secrets.SMTP_PASSWORD }}
+          subject: "❌ Vertex AI Pipeline FAILED - ${{ github.repository }}"
+          to: ${{ secrets.NOTIFICATION_EMAIL }}
+          from: ${{ secrets.SMTP_USERNAME }}
+          body: |
+            The Vertex AI pipeline **failed**.
+            Workflow: ${{ github.workflow }}
+            Commit: ${{ github.sha }}
+            Triggered by: ${{ github.actor }}
+
+      - name: Send Success Notification
+        if: success()
+        uses: dawidd6/action-send-mail@v3
+        with:
+          server_address: smtp.gmail.com
+          server_port: 465
+          username: ${{ secrets.SMTP_USERNAME }}
+          password: ${{ secrets.SMTP_PASSWORD }}
+          subject: "✅ Vertex AI Pipeline SUCCESS - ${{ github.repository }}"
+          to: ${{ secrets.NOTIFICATION_EMAIL }}
+          from: ${{ secrets.SMTP_USERNAME }}
+          body: |
+            The Vertex AI pipeline **completed successfully**.
+            Workflow: ${{ github.workflow }}
+            Commit: ${{ github.sha }}
+            Triggered by: ${{ github.actor }}
