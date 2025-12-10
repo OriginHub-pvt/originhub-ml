@@ -34,7 +34,7 @@ from src.agentic.pipeline.interactive_pipeline_runner import InteractivePipeline
 from src.agentic.api.session_manager import SessionManager
 
 # Import Weaviate
-from weaviate import connect_to_local
+from weaviate import connect_to_local, connect_to_custom
 from src.agentic.rag.weaviate_retriever import WeaviateRetriever
 
 # ============================================================
@@ -97,11 +97,34 @@ async def startup_event():
         
         # Connect to Weaviate
         print("[API] Connecting to Weaviate...")
-        _weaviate_client = connect_to_local(
-            host=os.getenv("WEAVIATE_HOST", "localhost"),
-            port=int(os.getenv("WEAVIATE_PORT", 8081)),
-            grpc_port=int(os.getenv("WEAVIATE_GRPC_PORT", 50051)),
-        )
+        weaviate_host = os.getenv("WEAVIATE_HOST", "localhost")
+        weaviate_port = int(os.getenv("WEAVIATE_PORT", 8081))
+        weaviate_grpc_host = os.getenv("WEAVIATE_GRPC_HOST", weaviate_host)
+        weaviate_grpc_port = int(os.getenv("WEAVIATE_GRPC_PORT", 50051))
+        
+        print(f"[API] Weaviate config: host={weaviate_host}:{weaviate_port}, grpc={weaviate_grpc_host}:{weaviate_grpc_port}")
+        
+        # Check if it's a remote connection
+        is_remote = weaviate_host not in ["localhost", "127.0.0.1"]
+        
+        if is_remote:
+            # For remote Weaviate instances, use HTTP connection with gRPC
+            from weaviate import connect_to_custom
+            _weaviate_client = connect_to_custom(
+                http_host=weaviate_host,
+                http_port=weaviate_port,
+                http_secure=False,
+                grpc_host=weaviate_grpc_host,
+                grpc_port=weaviate_grpc_port,
+                grpc_secure=False,
+            )
+        else:
+            # For local connections, use connect_to_local
+            _weaviate_client = connect_to_local(
+                host=weaviate_host,
+                port=weaviate_port,
+                grpc_port=weaviate_grpc_port,
+            )
         print("[API] Weaviate connected successfully")
         
         # Create pipeline template
@@ -280,8 +303,13 @@ async def api_info():
     }
 
 
-def run(host: str = "0.0.0.0", port: int = 8000):
+def run(host: str = None, port: int = None):
     """Run the API server."""
+    # Read from environment variables if not provided
+    host = host or os.getenv("API_HOST", "0.0.0.0")
+    port = port or int(os.getenv("API_PORT", 8000))
+    
+    print(f"[API] Starting server on {host}:{port}")
     uvicorn.run(
         app,
         host=host,
