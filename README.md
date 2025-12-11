@@ -1,165 +1,94 @@
-# OriginHub ML
+# OriginHub ML Platform
 
-Machine learning repository for OriginHub. Contains:
+End-to-end system for discovering, evaluating, and deploying startup ideas. The stack combines a data ingestion pipeline, a multi-agent reasoning engine, automated evaluation, and a production deployment path on Google Cloud.
 
-- **Agentic System**: Multi-agent reasoning pipeline for idea evaluation and strategic analysis
-- **SLM Filter**: Text classification model for filtering startup ideas
+![OriginHub architecture](Architecture.png)
 
-## Repository Structure
+- **Frontend:** Deployed on Cloud Run.
+- **Backend / Data Plane:** API, Postgres (+ Zalando Postgres Operator), and Weaviate run on Google Kubernetes Engine (GKE).
+- **Orchestration:** Airflow for data ingestion, Kubeflow + GitHub Actions for model CI/CD, Vertex AI for evaluation/retrain, and Prometheus/Grafana/Lens for monitoring.
 
-- `src/agentic/` — Multi-agent pipeline for idea analysis (see [Agentic README](src/agentic/README.md))
-- `src/slm_filter/` — Training code for the SLM filter classification model
-- `configs/` — YAML configuration files for model training
-- `data/` — Sample and DVC-tracked datasets
-- `models/` — Model artifacts and checkpoints
-- `requirements.txt` — Python dependencies
-- `.env.example` — Environment configuration template
+## Model Deployemnt Tutorial
 
-## Projects
+[![Watch the demo](https://img.youtube.com/vi/Ry5tCjiy8ao/hqdefault.jpg)](https://youtu.be/Ry5tCjiy8ao)
 
-### 1. Agentic System
+## What’s Inside
 
-A sophisticated multi-agent reasoning pipeline for business idea evaluation with GPU-accelerated LLMs.
+- **Agentic System** - Multi-agent pipeline for idea interpretation, RAG search, routing, and strategic analysis (`src/agentic/`).
+- **SLM Filter** - Lightweight classifier for filtering startup ideas (`src/slm_filter/`).
+- **Data Pipeline Assets** - Airflow-friendly ingestion + summarization steps, feeds into Weaviate vector DB.
+- **Deployment Assets** - Dockerfiles, `docker-compose.yml` for local, and `k8s/api-deployment.yaml` for GKE.
+- **CI/CD Blueprints** - GitHub Actions jobs that compile and submit Kubeflow/Vertex AI pipelines; Vertex AI gates bias/eval before retrain.
 
-**Key Features:**
+## Architecture Walkthrough
 
-- Interprets unstructured user input into structured business ideas
-- Semantic search using Weaviate vector database
-- Intelligent routing to specialized analysis agents
-- Competitive analysis and SWOT strategy generation
-- GPU-accelerated inference with Qwen models
+- **Data Pipeline (Airflow):** Ingest RSS/XML startup feeds → convert to JSON → classify/filter via SLM filter → scrape full text → summarize → push embeddings into Weaviate. Intermediate artifacts land in Cloud Storage.
+- **Model Pipeline (ADK-powered agents):** Interpreter → RAG Agent (Weaviate) → Evaluator routes to Clarifier / Strategist / Reviewer → Summarizer produces the final report. Agents run behind the API served from GKE.
+- **Model Evaluation Loop:** Automated response evaluation and test suite; if benchmarks fail, fine-tune prompts/hyperparameters and rerun tests.
+- **CI/CD Deployment:** Push/PR triggers GitHub Actions → job1 compiles Kubeflow pipeline → job2 submits to Vertex AI. Vertex AI runs bias detection and score evaluation; only passing models are registered to GCS and retrained if needed. Notifications sent on pipeline completion.
+- **Monitoring & Ops:** Lens for cluster visibility; Prometheus/Grafana for metrics and dashboards.
 
-**Quick Start:**
-
-```bash
-# Setup environment
-cp .env.example .env
-# Edit .env with your configuration
-
-# Run interactive chat (terminal)
-python src/agentic/scripts/chat_pipeline.py
-
-# Or start REST API for UI connections
-python src/agentic/scripts/api_server.py
-# API available at: http://localhost:8000
-# Docs: http://localhost:8000/docs
-
-# Or single query
-python src/agentic/scripts/run_pipeline.py "Your business idea here"
-```
-
-See [src/agentic/README.md](src/agentic/README.md) for detailed documentation and [src/agentic/api/API.md](src/agentic/api/API.md) for API documentation.
-
-### 2. SLM Filter
-
-Text classification model for filtering and categorizing startup ideas.
-
-**Setup:**
-
-1. Create and activate a Python virtual environment:
+## Quick Start (Local)
 
 ```bash
-python3 -m venv .venv
-source .venv/bin/activate
+python3 -m venv .venv && source .venv/bin/activate
 pip install -r requirements.txt
+cp .env.example .env  # fill in model + Weaviate settings
 ```
 
-2. Use DVC to pull training data:
+- **Switch backends:** See `QUICK_SETUP_OPENAI.txt` and `MODEL_BACKEND_GUIDE.md` for toggling between local GGUF, OpenAI API, and GPU transformers (`MODEL_BACKEND=llama_cpp|openai|transformers_gpu`).
+- **Run agentic pipeline (CLI):** `python src/agentic/scripts/run_pipeline.py "Your idea"`
+- **Interactive chat:** `python src/agentic/scripts/chat_pipeline.py`
+- **REST API (local):** `python src/agentic/scripts/api_server.py` → `http://localhost:8000/docs`
+- **Smoke test:** `python src/agentic/scripts/smoke_test_pipeline.py`
+
+## Local Services with Docker Compose
 
 ```bash
-dvc pull
+docker-compose up -d  # brings up Weaviate + transformers + API
 ```
 
-3. Configure GCP credentials (optional, for model upload):
+Defaults wire the API to Weaviate at `weaviate:8080/50051` and use OpenAI as the backend unless overridden by env vars.
 
-```bash
-export GOOGLE_APPLICATION_CREDENTIALS=/path/to/gcp_credentials.json
-```
+## Kubernetes / GKE Deployment
 
-4. Run the training pipeline:
+- Manifest: `k8s/api-deployment.yaml` (namespace, configmap, secrets, LB service, probes).
+- Image build/push: see `K8S_QUICK_DEPLOY.md` or run `docker build -f k8s/Dockerfile ...`.
+- Update ConfigMap/Secret for `MODEL_BACKEND`, OpenAI keys, and Weaviate endpoints before applying.
+- Backend, Postgres (+ Zalando operator), and Weaviate are expected to run on GKE; frontend is served from Cloud Run.
 
-```bash
-python src/slm_filter/train.py --config configs/slm_filter.yaml --log-level INFO
-```
+## CI/CD and Model Ops
 
-The pipeline will:
+- **GitHub Actions:** Two-stage workflow (compile Kubeflow pipeline, then submit to Vertex AI).
+- **Vertex AI gates:** Bias detection and score evaluation; passing runs register to GCS and trigger retrain.
+- **Testing:** `pytest src/agentic/tests/` (full) or `python src/agentic/scripts/smoke_test_pipeline.py` (lightweight).
 
-- Load and clean data from the configured path
-- Tokenize inputs and fine-tune the model
-- Save the best model and metrics to `models/slm_filter/v{version}`
-- Upload artifacts to the configured GCS bucket
+## Key Configuration
 
-## Environment Configuration
+- `.env.example` - API + model defaults.
+- `configs/slm_filter.yaml` - Training config for the classifier.
+- Environment highlights:
+  - `MODEL_7B_PATH`, `MODEL_1B_PATH`, `MODEL_GPU_LAYERS`, `MODEL_CONTEXT_SIZE`
+  - `WEAVIATE_HOST`, `WEAVIATE_PORT`, `WEAVIATE_GRPC_PORT`, `WEAVIATE_COLLECTION`
+  - `RAG_NEW_THRESHOLD`, `AGENTIC_DEBUG`
+  - `OPENAI_API_KEY` or GPU transformer settings when applicable
 
-Copy `.env.example` to `.env` and configure your settings:
+## Repository Map
 
-```bash
-cp .env.example .env
-```
+- `src/agentic/` - Agent implementations, prompts, pipeline runners, API, ADK graph (see `src/agentic/README.md`).
+- `src/slm_filter/` - Classifier training/inference code and configs.
+- `docker-compose.yml` - Local stack for API + Weaviate.
+- `k8s/` - GKE deployment manifests and Dockerfile.
+- `K8S_QUICK_DEPLOY.md` - Step-by-step deploy to Kubernetes.
+- `MODEL_BACKEND_GUIDE.md` and `QUICK_SETUP_OPENAI.txt` - Backend switching cheatsheets.
 
-**Key Configuration Options:**
+## Usage Tips
 
-**Agentic System:**
+- Start with OpenAI backend for zero-GPU setup; switch to `llama_cpp` for cost control and privacy.
+- If RAG novelty feels strict/lenient, tune `RAG_NEW_THRESHOLD`.
+- Keep Weaviate healthy: ensure `t2v-transformers` is reachable and Prometheus alerts are green.
 
-- `MODEL_7B_PATH` / `MODEL_1B_PATH` — Paths to Qwen GGUF model files
-- `MODEL_GPU_LAYERS` — Number of layers to offload to GPU (30 for 8GB VRAM)
-- `WEAVIATE_HOST` / `WEAVIATE_PORT` — Weaviate vector database connection
-- `RAG_NEW_THRESHOLD` — Similarity threshold for novelty detection (0.0-1.0)
-- `AGENTIC_DEBUG` — Set to 1 for verbose logging
+## Support
 
-**SLM Filter:**
-
-- See `configs/slm_filter.yaml` for training configuration
-- `base_model` — HuggingFace model backbone
-- `data_path` — Training data CSV path
-- `gcs_model_bucket` — GCS bucket for model artifacts
-
-## Data Format
-
-**SLM Filter Training Data:**
-
-Expected CSV columns:
-
-- `title` (string)
-- `description` (string)
-- `label` (integer)
-
-Rows with missing values are automatically dropped.
-
-## Development
-
-**Prerequisites:**
-
-- Python 3.10+
-- NVIDIA GPU with CUDA 12.0+ (for agentic system)
-- Docker (for Weaviate)
-- Google Cloud credentials (for model upload)
-
-**Testing:**
-
-```bash
-# Run agentic system tests
-pytest src/agentic/tests/
-
-# Run smoke test (no GPU required)
-python src/agentic/scripts/smoke_test_pipeline.py
-```
-
-## Troubleshooting
-
-**Agentic System:**
-
-- GPU not detected: Reinstall `llama-cpp-python` with CUDA support
-- OOM errors: Reduce `MODEL_GPU_LAYERS` or `MODEL_CONTEXT_SIZE`
-- Weaviate connection failed: Check Docker container status
-
-**SLM Filter:**
-
-- GCS authentication errors: Verify `GOOGLE_APPLICATION_CREDENTIALS`
-- Data loading fails: Confirm CSV path in `configs/slm_filter.yaml`
-- GPU training issues: Ensure CUDA-enabled `transformers` installation
-
-## Documentation
-
-- [Agentic System Documentation](src/agentic/README.md)
-- [SLM Filter Details](src/slm_filter/README.md)
+- Issues/bugs: GitHub Issues on this repo.
+- Architecture and pipeline questions: open a Discussion or reach out to the OriginHub team.
