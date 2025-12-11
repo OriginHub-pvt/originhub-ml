@@ -8,6 +8,10 @@ End-to-end system for discovering, evaluating, and deploying startup ideas. The 
 - **Backend / Data Plane:** API, Postgres (+ Zalando Postgres Operator), and Weaviate run on Google Kubernetes Engine (GKE).
 - **Orchestration:** Airflow for data ingestion, Kubeflow + GitHub Actions for model CI/CD, Vertex AI for evaluation/retrain, and Prometheus/Grafana/Lens for monitoring.
 
+## Model Deployemnt Tutorial
+
+[![Watch the demo](https://img.youtube.com/vi/Ry5tCjiy8ao/hqdefault.jpg)](https://youtu.be/Ry5tCjiy8ao)
+
 ## What’s Inside
 
 - **Agentic System** - Multi-agent pipeline for idea interpretation, RAG search, routing, and strategic analysis (`src/agentic/`).
