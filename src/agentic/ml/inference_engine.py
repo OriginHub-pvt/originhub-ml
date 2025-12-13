@@ -6,8 +6,11 @@ Provides a uniform interface for generating text from either the heavy
 or light model, using thread-safe execution.
 """
 
+import logging
 from typing import Optional
 from src.agentic.ml.model_manager import ModelManager
+
+logger = logging.getLogger(__name__)
 
 
 class InferenceEngine:
@@ -56,6 +59,9 @@ class InferenceEngine:
         str
             Generated text output.
         """
+        model_type = "heavy" if heavy else "light"
+        logger.debug(f"Generating with {model_type} model (max_tokens={max_tokens}, temperature={temperature})")
+        
         model, lock = self.manager.get(heavy=heavy)
         with lock:
             result = model(

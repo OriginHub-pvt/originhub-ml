@@ -20,7 +20,7 @@ load_dotenv()
 # ============================================================
 # Configuration
 # ============================================================
-API_BASE_URL = os.getenv("API_BASE_URL", "http://localhost:8000")
+API_BASE_URL = os.getenv("API_BASE_URL", "http://localhost:8004")
 API_HEALTH_ENDPOINT = f"{API_BASE_URL}/health"
 API_CREATE_SESSION_ENDPOINT = f"{API_BASE_URL}/sessions"
 API_CHAT_ENDPOINT_TEMPLATE = f"{API_BASE_URL}/chat"
@@ -127,7 +127,7 @@ def send_message_to_api(message: str) -> Optional[dict]:
             json=payload,
             timeout=60  # Longer timeout for analysis
         )
-        
+        print(response.text)
         if response.status_code == 200:
             return response.json()
         else:

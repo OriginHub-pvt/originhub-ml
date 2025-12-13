@@ -44,32 +44,43 @@ class PromptBuilder:
         str
             Prompt instructing the model to return a single JSON object.
         """
-        return f"""
-            You are an assistant that converts startup or product ideas into a clean JSON object.
+        return f"""You are an expert product strategist specializing in analyzing and structuring startup ideas. Your task is to parse the user's idea and convert it into a well-organized JSON object.
 
-            User idea:
-                {input_text}
+            User's Idea:
+            {input_text}
 
-                RETURN REQUIREMENTS (strict):
-                    - Output EXACTLY one JSON object and NOTHING ELSE (no explanations, no code fences).
-                    - Ensure the following REQUIRED fields are present and NON-EMPTY: "title", "description", "problem".
-                        * "title": a short name (max 6 words), e.g. "Smart Grocery List".
-                        * "description": 1-2 concise sentences summarizing the idea.
-                        * "problem": 1 sentence describing the user problem this idea addresses.
+            CRITICAL INSTRUCTIONS:
+            1. Output ONLY a valid JSON object - no explanations, code fences, markdown, or any text before/after JSON
+            2. All JSON keys and values must be lowercase strings (except for proper nouns and acronyms)
+            3. Keep all text concise and specific
 
-                Additional optional fields (fill when available):
-                    - "one_line": one-line summary
-                    - "solution": how it solves the problem
-                    - "domain": high-level category (e.g., productivity, health)
-                    - "target_users": short description of the target users
-                    - "key_features": list of 3–7 short feature strings
-                    - "stage": one of ["idea", "prototype", "launched", "other"]
-                    - "extra_notes": any other relevant details
-                
-                Important:
-                    - Respond with ONLY valid JSON.
-                    - Do not add explanations, commentary, or any extra text outside the JSON object.
-            """
+            REQUIRED FIELDS (must be filled):
+            - "title": Catchy, clear product name (3-6 words maximum). Example: "Smart Grocery List"
+            - "description": 1-2 sentences explaining what the product is and what it does
+            - "problem": The specific user problem this idea addresses in 1-2 sentences
+
+            OPTIONAL FIELDS (fill if mentioned):
+            - "one_line": Ultra-concise elevator pitch (one sentence, max 15 words)
+            - "solution": How the product solves the problem (1-2 sentences)
+            - "domain": High-level industry/category (e.g., "productivity", "healthcare", "fintech")
+            - "target_users": Who will use this product (be specific: "busy professionals aged 25-45", not "everyone")
+            - "key_features": List of 3-7 core features or capabilities
+            - "stage": Current development stage - must be one of: "idea", "prototype", "mvp", "launched"
+            - "market_size": Estimated market size or target audience size (if mentioned)
+            - "differentiator": What makes this unique compared to existing solutions
+            - "revenue_model": How the product will make money (e.g., "subscription", "freemium", "b2b")
+            - "extra_notes": Any other relevant details not captured above
+
+            QUALITY RULES:
+            - Be concise: no fluff or marketing jargon
+            - Be specific: avoid vague terms like "innovative" or "powerful"
+            - Be accurate: extract only what the user mentioned, don't invent details
+            - Use clear language: short sentences, simple words
+
+            EXAMPLE OUTPUT:
+            {{"title": "smart meal planner", "description": "An app that suggests weekly meal plans based on dietary preferences and available ingredients.", "problem": "People spend too much time deciding what to eat and planning grocery shopping.", "domain": "health & wellness", "target_users": "busy professionals and families with young children", "key_features": ["personalized meal suggestions", "grocery list sync", "nutrition tracking", "recipe recommendations"], "stage": "idea"}}
+
+            Now parse the user's idea and respond with ONLY the JSON object."""
 
     # ------------------------------------------------------------------
     # 2) Clarifier
@@ -110,34 +121,46 @@ class PromptBuilder:
                 safe_summary = str(list((interpreted or {}).keys()))
 
             # Ask the LLM to produce conversational, field-specific questions with short examples
-            return f"""
-            You are a friendly clarifying assistant.
+            return f"""You are a skilled product consultant conducting a discovery interview. Your job is to ask focused, conversational questions to clarify missing or incomplete information about the business idea.
 
-            Current interpreted fields: {interpreted}
+                Current Idea Profile:
+                {interpreted}
 
-            The following required details are missing:
-            {questions}
+                MISSING REQUIRED INFORMATION:
+                {questions}
 
-            CRITICAL: Output ONLY a JSON array of short question strings, and NOTHING ELSE. Do NOT echo the interpreted object, do not include any explanatory text, code fences, or metadata. If you cannot produce questions, return an empty JSON array `[]`.
+                YOUR TASK:
+                Generate a JSON array of follow-up questions to fill the gaps. Each question should:
+                1. Be conversational and natural (not robotic)
+                2. Ask for ONE specific piece of information only
+                3. Include a brief example in parentheses to guide the user
+                4. Keep it under 20 words
+                5. Use second-person perspective ("What", "How", "Why" - address the user directly)
 
-            For each missing field, produce ONE short, conversational question that asks the user to provide that field. Phrase each question in second-person (e.g., "What is the title of your idea?") and include a very short example in parentheses after the question to guide the user (for example: "(e.g., 'Smart Grocery List')"). Keep questions under 20 words.
+                IMPORTANT RULES:
+                - Output ONLY a JSON array of strings - nothing else
+                - If information is already complete, return an empty array: []
+                - Do not include explanations, code fences, or any text outside the JSON array
+                - Order questions by importance/relevance
 
-            Return a JSON array of strings only, in the order of the missing fields. The runner will ask them one at a time. Example response:
-            [
-              "What is the title of your idea? (e.g., 'Smart Grocery List')",
-              "Please provide a short description of your idea. (2–3 sentences)"
-            ]
+                EXAMPLE OUTPUT:
+                ["What specifically is the main problem your users face? (e.g., 'they spend 2 hours daily on paperwork')", "Who is your primary target user? (e.g., 'small business owners aged 30-55')", "How will users access your product? (e.g., 'web app', 'mobile app', 'desktop software')"]
 
-            If everything is already clear, return an empty JSON array: [].
-            """
-        # Fallback to generic prompt if nothing is missing
-        return f"""
-            You are a clarifying assistant.
+                Now generate the clarifying questions as a JSON array:"""
+                # Fallback to generic prompt if nothing is missing
 
-            Here is the current structured representation of the idea:
+        return f"""You are a product consultant reviewing a well-defined business idea. Assess whether any key details could be enhanced or clarified for a better understanding.
+
+            Current Idea:
             {interpreted}
 
-            If any required information is missing or unclear, ask a specific question for each missing field. Respond with a JSON array of strings. If everything is already clear, return [].
+            Generate a JSON array of optional clarifying questions to deepen understanding. Focus on:
+            - Market dynamics and competitive positioning
+            - Specific use cases and user workflows
+            - Revenue and growth strategy
+            - Technical or operational considerations
+
+            Output ONLY a JSON array of strings. If the idea is sufficiently detailed, return [].
             """
 
     # ------------------------------------------------------------------
@@ -162,23 +185,39 @@ class PromptBuilder:
         str
             Prompt for generating a short market analysis.
         """
-        return f"""
-            You are a product and market analysis assistant.
+        return f"""You are a seasoned market analyst and product strategist. Analyze this business idea against existing competitors and market dynamics.
 
-            Idea (structured):
+            THE IDEA:
             {interpreted}
 
-            Similar existing tools / companies (from retrieval):
+            SIMILAR EXISTING SOLUTIONS (from market research):
             {rag_results}
 
-            Write a concise market analysis (5–10 sentences) that covers:
-            - How this idea fits into the current landscape.
-            - Overlaps with existing tools.
-            - Gaps or opportunities you see.
-            - Any high-level risks.
+            YOUR ANALYSIS (provide exactly this structure):
 
-            Respond in plain English, no JSON needed.
-        """
+            1. MARKET POSITIONING (2-3 sentences):
+            - Where does this fit in the existing market landscape?
+            - Is this incremental innovation or a new category?
+
+            2. COMPETITIVE OVERLAPS (2-3 sentences):
+            - What existing solutions address similar needs?
+            - What features/benefits overlap?
+
+            3. MARKET GAPS & OPPORTUNITIES (2-3 sentences):
+            - What needs are NOT currently met?
+            - Where could this idea have a unique advantage?
+
+            4. RISK ASSESSMENT (2-3 sentences):
+            - What are the main barriers to success?
+            - Any red flags or market headwinds?
+
+            TONE & STYLE:
+            - Be analytical and specific (cite actual competitors)
+            - Use clear, professional language
+            - Avoid hype - be realistic and balanced
+            - Focus on facts and market dynamics, not opinions
+
+            Write your analysis in plain English with clear section headers."""
 
     # ------------------------------------------------------------------
     # 4) MiniReview (differentiation)
@@ -205,27 +244,48 @@ class PromptBuilder:
         str
             Prompt for a short competitor comparison mini-review.
         """
-        return f"""
-            You are a product differentiation assistant generating a mini review of the idea.
+        return f"""You are a product strategist conducting a competitive differentiation analysis. Your goal is to identify how this idea stands out in the market.
 
-            Idea:
+            THE IDEA:
             {interpreted}
 
-            Similar tools / competitors:
+            COMPETITIVE LANDSCAPE:
             {rag_results}
 
-            Market analysis:
+            MARKET CONTEXT:
             {analysis}
 
-            Task:
-            - Briefly explain how this idea is similar to existing solutions.
-            - Highlight 2–5 ways it could be different or better.
-            - Mention any obvious red flags.
+            YOUR TASK - PROVIDE EXACTLY:
 
-            You may respond either:
-            - As plain text (1–2 short paragraphs), or
-            - As JSON with fields like "unique_points" and "risks".
-        """
+            1. COMPETITIVE POSITIONING (2-3 sentences):
+            - How is this similar to existing solutions?
+            - What category does it compete in?
+
+            2. KEY DIFFERENTIATORS (3-5 specific points):
+            - Unique features or approaches
+            - Superior execution or focus
+            - Better targeting or pricing
+            - Innovation in user experience
+            Example format: "- Lower price point (30% cheaper than competitors)"
+
+            3. COMPETITIVE ADVANTAGES (2-3 points):
+            - Core strengths that competitors lack
+            - Defensible market position
+            Example: "- Exclusive partnerships with [industry]"
+
+            4. RISKS & CHALLENGES (2-3 points):
+            - What could prevent market adoption?
+            - Barriers competitors could exploit
+            - Any red flags about the market?
+            Example: "- High customer acquisition cost in this category"
+
+            QUALITY REQUIREMENTS:
+            - Be specific and actionable (not vague claims)
+            - Base analysis on actual competitive context provided
+            - Acknowledge strengths AND weaknesses
+            - Use realistic, conservative estimates
+
+            Format your response as structured text with clear headers and bullet points."""
 
 
     # ------------------------------------------------------------------
@@ -244,52 +304,100 @@ class PromptBuilder:
         str
             Prompt for generating a SWOT or strategic view with research and action plan.
         """
-        return f"""
-            You are a startup strategist and research analyst.
+        return f"""You are a seasoned startup strategist and business consultant. Your task is to develop a comprehensive go-to-market strategy for this business idea.
 
-            Here is a new idea with little or no close competition:
+            THE IDEA:
             {interpreted}
 
-            Provide a comprehensive strategic analysis that includes:
+            STRATEGIC FRAMEWORK - PROVIDE DETAILED ANALYSIS FOR EACH SECTION:
 
-            1. MARKET RESEARCH:
-               - Target market size and growth potential
-               - Key customer segments and their pain points
-               - Market trends and dynamics
-               - Potential barriers to entry
+            ## 1. MARKET OPPORTUNITY & SIZING
+            - Total Addressable Market (TAM) - estimate in $ or # of users
+            - Serviceable Addressable Market (SAM) - realistic initial target
+            - Key customer segments and their pain points (be specific)
+            - Current market trends that favor or hinder this idea
+            - Barriers to entry (technical, regulatory, capital requirements)
 
-            2. COMPETITIVE LANDSCAPE:
-               - Indirect competitors or adjacent solutions
-               - What makes this idea unique
-               - Potential future competitors
+            ## 2. COMPETITIVE & ADJACENT LANDSCAPE
+            - Direct competitors and their positioning
+            - Indirect competitors (adjacent products solving similar problems)
+            - What makes this idea unique vs. the competition
+            - Potential new entrants in 2-3 years
+            - Why now is the right time to build this
 
-            3. SWOT ANALYSIS:
-               - Strengths: Core advantages and capabilities
-               - Weaknesses: Potential challenges and limitations
-               - Opportunities: Market gaps and growth areas
-               - Threats: Risks and external challenges
+            ## 3. SWOT ANALYSIS (Be Specific)
+            
+            STRENGTHS (Your unique advantages):
+            - What your team/idea does better than competitors
+            - Unique capabilities or resources
+            - Market timing advantages
+            
+            WEAKNESSES (Honest assessment):
+            - Gaps in product/team/resources
+            - Limitations compared to competitors
+            - Execution risks
+            
+            OPPORTUNITIES (Market growth vectors):
+            - Adjacent markets to expand into
+            - Product extensions or new features
+            - Strategic partnerships possible
+            - Emerging technologies to leverage
+            
+            THREATS (External risks):
+            - Competitive threats
+            - Regulatory/compliance risks
+            - Market saturation concerns
+            - Technology disruption risks
 
-            4. ACTION PLAN (Next Steps):
-               - Immediate actions (Week 1-4):
-                 * Validation steps
-                 * Market research tasks
-                 * Initial prototype/MVP requirements
-               - Short-term goals (Month 2-3):
-                 * Key milestones
-                 * Resource requirements
-                 * Early customer acquisition strategy
-               - Medium-term strategy (Month 4-6):
-                 * Scaling considerations
-                 * Team building needs
-                 * Funding requirements
+            ## 4. GO-TO-MARKET & EXECUTION STRATEGY
+            
+            PHASE 1 - VALIDATION (Weeks 1-8):
+            - [ ] Customer discovery interviews (target # of interviews)
+            - [ ] Market size validation research
+            - [ ] Competitor analysis deep-dive
+            - [ ] Technical feasibility assessment
+            - [ ] Success metric: [specific validation goal]
+            
+            PHASE 2 - MVP DEVELOPMENT (Months 2-3):
+            - [ ] Core features to build first
+            - [ ] Technology stack recommendations
+            - [ ] Resources needed (team, budget)
+            - [ ] Timeline and milestones
+            - [ ] Success metric: MVP launch with X beta users
+            
+            PHASE 3 - MARKET ENTRY (Months 4-6):
+            - [ ] Go-to-market channels (direct sales, marketing, partnerships)
+            - [ ] Customer acquisition strategy
+            - [ ] Pricing strategy and model
+            - [ ] Initial growth targets
+            - [ ] Success metric: acquire X customers, $X MRR
+            
+            PHASE 4 - SCALING (Months 7-12):
+            - [ ] Product-market fit validation (NPS, retention targets)
+            - [ ] Team expansion priorities
+            - [ ] Funding requirements and use of capital
+            - [ ] Geographic or segment expansion opportunities
 
-            5. SUCCESS METRICS:
-               - Key performance indicators to track
-               - Validation criteria for proceeding to next phase
+            ## 5. KEY SUCCESS METRICS & MILESTONES
+            - List 3-5 critical KPIs to track
+            - Define success criteria for each phase
+            - Identify decision points where you'd pivot or double-down
+            - Timeline: 30, 60, 90 days, 6 months, 12 months
 
-            Format your response as structured text with clear headings and bullet points.
-            Be specific and actionable in your recommendations.
-        """
+            ## 6. FUNDING & RESOURCE REQUIREMENTS
+            - Estimated capital needed to reach milestones
+            - Key hires required by phase
+            - Budget allocation: R&D, marketing, operations
+            - Assumptions about burn rate and runway
+
+            ## TONE & STYLE:
+            - Be thorough but concise (concrete details, not fluff)
+            - Use realistic estimates based on industry benchmarks
+            - Identify key assumptions and risks
+            - Provide actionable recommendations, not generic advice
+            - Support claims with logic and reasoning
+
+            Format your response with clear section headers and bullet points for easy scanning."""
 
     # ------------------------------------------------------------------
     # 6) Summarizer (final answer)
@@ -319,28 +427,77 @@ class PromptBuilder:
         str
             Prompt for producing the final answer for the end user.
         """
-        return f"""
-            You are a summarizer that produces a final, user-friendly summary.
+        return f"""You are a business consultant synthesizing a comprehensive analysis of a business idea. Your goal is to create a clear, actionable executive summary for the founder.
 
-            Idea (structured):
+            BUSINESS IDEA DETAILS:
             {interpreted}
 
-            Market analysis (may be None):
+            MARKET ANALYSIS:
             {analysis}
 
-            Mini-review (may be text or JSON):
-            {mini_review}
-
-            Strategy / SWOT (may be text, JSON, or None):
+            STRATEGIC ROADMAP:
             {strategy}
 
-            Task:
-            - Produce a clear, concise final summary of the idea and its context.
-            - If there is market analysis, briefly mention similar tools and how this idea compares.
-            - If there is strategy info, mention 2–3 key strengths or opportunities.
-            - End with 2–3 suggested next steps for the user.
+            YOUR TASK - STRUCTURE YOUR RESPONSE EXACTLY AS FOLLOWS (use plain text with line breaks, NO markdown formatting):
 
-            You may respond either as:
-            - A plain text answer, or
-            - A JSON object with at least "final_summary" and "next_steps".
-        """
+            EXECUTIVE SUMMARY
+            Provide a compelling 3-4 sentence overview:
+            - What the idea is
+            - Why it matters
+            - Why NOW is the right time
+            - Key competitive advantage
+
+            OPPORTUNITY ASSESSMENT
+            - Market size and growth potential
+            - Target customer profile (be specific)
+            - Primary value proposition (1-2 sentences)
+
+            COMPETITIVE POSITION
+            - How you differentiate from alternatives
+            - Key advantages vs. competitors (2-3 points)
+            - Realistic assessment of challenges
+
+            GO-TO-MARKET STRATEGY
+            1. Initial Target Market: [specific segment]
+            2. Primary Validation Focus: [most critical assumption to test]
+            3. Quick Wins (0-4 weeks): [2-3 specific actions]
+            4. MVP Focus (1-3 months): [core features only]
+
+            CRITICAL SUCCESS FACTORS
+            List 3-5 things that MUST go right for this to succeed:
+            1. [Specific requirement with explanation]
+            2. [Specific requirement with explanation]
+            (etc.)
+
+            IMMEDIATE NEXT STEPS (Ranked by Priority)
+            For the founder RIGHT NOW, in this order:
+            1. [Action] - Expected outcome: [specific result]
+            2. [Action] - Expected outcome: [specific result]
+            3. [Action] - Expected outcome: [specific result]
+            4. [Action] - Expected outcome: [specific result]
+
+            RISK ASSESSMENT
+            Identify 2-3 key risks with suggested mitigation:
+            - Risk: [specific threat]
+            Mitigation: [concrete action to address]
+
+            OVERALL VERDICT
+            Conclude with an honest, balanced assessment:
+            - Viability (High/Medium/Low) with 1-2 sentence justification
+            - Key assumptions to validate before major investment
+            - Recommended pivot points if validation fails
+
+            IMPORTANT GUIDELINES:
+            - Be specific: cite actual data, markets, competitors from previous analysis
+            - Be honest: acknowledge both strengths and significant challenges
+            - Be actionable: founder should know exactly what to do next
+            - Be concise: prioritize most important insights
+            - Avoid hype: use conservative, realistic language
+            - Focus on what matters: execution and market-fit, not perfect planning
+            - DO NOT use markdown formatting (no #, ##, *bold*, etc.)
+            - Use plain text with clear line breaks between sections
+            - Use dashes (-) and numbers (1., 2., etc.) for lists, but no markdown bold
+            - Don't repeat information: each section should add new insights
+            - Don't give what I told you, create something new and valuable which includes don't repeat the prompt
+
+            Create a compelling, professional summary that motivates action while grounding the founder in reality."""

@@ -20,7 +20,6 @@ from typing import Any, Dict
 
 from src.agentic.core.agent_base import AgentBase
 from src.agentic.core.state import State
-from src.agentic.utils.json_utils import extract_first_json
 
 
 class SummarizerAgent(AgentBase):
@@ -92,23 +91,53 @@ class SummarizerAgent(AgentBase):
             state.summary = None
             return state
 
-        cleaned = raw_output.strip()
-
-        # Prefer the first JSON object found anywhere in the output
-        parsed = extract_first_json(cleaned)
-        if parsed is not None:
-            state.summary = parsed
-            return state
-
-        # Try direct loads as a last resort
-        try:
-            parsed = json.loads(cleaned)
-            if isinstance(parsed, dict):
-                state.summary = parsed
-                return state
-        except Exception:
-            pass
-
-        # Fallback: plain text summary
-        state.summary = cleaned
+        # Format the plain text output for better readability
+        formatted_output = self._format_for_readability(raw_output.strip())
+        state.summary = formatted_output
         return state
+
+    def _format_for_readability(self, text: str) -> str:
+        """
+        Format plain text summary for better readability by:
+        - Adding line breaks between major sections
+        - Preserving list formatting
+        - Adding spacing around section titles
+        """
+        lines = text.split("\n")
+        formatted_lines = []
+        
+        section_keywords = [
+            "EXECUTIVE SUMMARY",
+            "OPPORTUNITY ASSESSMENT",
+            "COMPETITIVE POSITION",
+            "GO-TO-MARKET STRATEGY",
+            "CRITICAL SUCCESS FACTORS",
+            "IMMEDIATE NEXT STEPS",
+            "RISK ASSESSMENT",
+            "OVERALL VERDICT",
+        ]
+        
+        for i, line in enumerate(lines):
+            line = line.rstrip()
+            
+            # Check if this line is a section header
+            is_section = any(keyword in line.upper() for keyword in section_keywords)
+            
+            # Add extra spacing before section headers (except the first one)
+            if is_section and i > 0 and formatted_lines and formatted_lines[-1].strip():
+                formatted_lines.append("")  # Blank line before section
+            
+            formatted_lines.append(line)
+            
+            # Add extra spacing after section headers
+            if is_section and i + 1 < len(lines):
+                # Don't add blank line if next line is already blank
+                pass
+        
+        # Join with newlines and clean up multiple consecutive blank lines
+        result = "\n".join(formatted_lines)
+        
+        # Replace multiple blank lines with single blank line
+        while "\n\n\n" in result:
+            result = result.replace("\n\n\n", "\n\n")
+        return result

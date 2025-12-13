@@ -7,6 +7,7 @@ Takes user input text and converts it into a structured JSON object
 describing the idea (title, problem, domain, users, features, etc.).
 """
 
+import logging
 import json
 import re
 from typing import Any, Dict
@@ -15,6 +16,8 @@ from src.agentic.core.agent_base import AgentBase
 from src.agentic.core.state import State
 from src.agentic.utils.json_utils import extract_first_json, extract_all_jsons
 import time
+
+logger = logging.getLogger(__name__)
 
 
 class InterpreterAgent(AgentBase):
@@ -116,7 +119,7 @@ class InterpreterAgent(AgentBase):
 
             # Warn if chosen JSON seems unrelated (low overlap)
             if state.interpreted and best_score <= 0:
-                print("[InterpreterAgent] Warning: chosen JSON has low overlap with input_text — model may have echoed an example.")
+                logger.warning("Chosen JSON has low overlap with input_text — model may have echoed an example.")
 
         except Exception as e:
             state.interpreted = None
@@ -130,7 +133,7 @@ class InterpreterAgent(AgentBase):
                 missing_fields.append(field)
 
         if missing_fields:
-            print(f"[InterpreterAgent] Missing required fields: {missing_fields}. Calling ClarifierAgent.")
+            logger.info(f"Missing required fields: {missing_fields}. Calling ClarifierAgent.")
             # Dynamically import ClarifierAgent to avoid circular import
             from src.agentic.agents.clarifier_agent import ClarifierAgent
             clarifier = ClarifierAgent(

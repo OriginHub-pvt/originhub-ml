@@ -13,10 +13,13 @@ Behaves like a single unified AI assistant:
 - Maintains conversation history for context-aware responses
 """
 
+import logging
 import json
 import re
 
 from src.agentic.core.state import State
+
+logger = logging.getLogger(__name__)
 
 
 class InteractivePipelineRunner:
@@ -73,20 +76,25 @@ class InteractivePipelineRunner:
         
         # Add to conversation history
         self.conversation_history.append({"role": "user", "content": user_message})
+        logger.debug(f"User message received: {len(user_message)} chars")
 
         # User responding to clarifier question
         if self.waiting_for_clarification:
+            logger.info("Processing clarification response")
             return self._process_clarification_answer(user_message)
         
         # Analysis complete - handle as follow-up question
         if self.analysis_complete:
+            logger.info("Processing follow-up question")
             return self._handle_followup_question(user_message)
 
         # First turn → Interpreter must run
         if self.state.interpreted is None:
+            logger.info("Running interpreter agent")
             return self._run_interpreter(user_message)
 
         # Otherwise continue normal pipeline
+        logger.info("Continuing pipeline")
         return self._continue_pipeline()
 
     # =======================================================
@@ -204,9 +212,8 @@ class InteractivePipelineRunner:
             
             # Handle summary as dict or string
             summary_text = self._format_summary(self.state.summary)
-            response = summary_text + "\n\n---\nI've completed the analysis. Feel free to ask follow-up questions!"
-            self.conversation_history.append({"role": "assistant", "content": response})
-            return response
+            self.conversation_history.append({"role": "assistant", "content": summary_text})
+            return summary_text
 
         # ----- Review branch -----
         if self.state.next_action == "review":
