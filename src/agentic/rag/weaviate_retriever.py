@@ -53,6 +53,10 @@ class WeaviateRetriever:
         List[Dict[str, Any]]
             Retrieved objects with title, summary and distance.
         """
+        # Return error if client is not connected
+        if self.client is None:
+            return [{"error": "Weaviate client not initialized. Check connection and HUGGINGFACE_APIKEY."}]
+        
         try:
             response = self.collection.query.near_text(
                 query=query_text,

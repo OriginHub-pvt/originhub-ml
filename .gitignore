@@ -6,6 +6,7 @@
 # C extensions
 *.so
 k8s/api-prod.yaml
+k8s/agentic-ingress-prod.yaml
 # Distribution / packaging
 .Python
 build/

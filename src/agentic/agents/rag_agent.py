@@ -15,10 +15,15 @@ Outputs stored in State:
 - state.agent_outputs["RAGAgent"] : raw retrieval payload or error
 """
 
+import logging
 import os
 from typing import Any, Dict, List
 from src.agentic.core.state import State
-from src.agentic.utils.logger import debug
+
+logger = logging.getLogger(__name__)
+
+
+# Use logger for debug messages instead of debug utility
 
 
 class RAGAgent:
@@ -87,20 +92,16 @@ class RAGAgent:
             # idea as new when the best (lowest) distance is greater than
             # the configured threshold.
             # Check for error results first
-            if results and any("error" in str(r) for r in results):
-                # Treat retrieval errors as new ideas (prefer strategist)
+            if len(results) == 0:
                 state.is_new_idea = True
-                debug(f"[RAGAgent] Error in results, treating as new_idea=True")
-            elif len(results) == 0:
-                state.is_new_idea = True
-                debug(f"[RAGAgent] No results found, is_new_idea=True")
+                logger.info("RAG: No results found, is_new_idea=True")
             else:
                 # Extract numeric distances only
                 distances = [r.get("distance") for r in results if isinstance(r.get("distance"), (int, float))]
                 if not distances:
                     # If no numeric distances available, treat as new (prefer strategist)
                     state.is_new_idea = True
-                    debug(f"[RAGAgent] No numeric distances found, treating as new_idea=True")
+                    logger.info("RAG: No numeric distances found, treating as new_idea=True")
                 else:
                     top = min(distances)
                     try:
@@ -108,18 +109,17 @@ class RAGAgent:
                     except Exception:
                         threshold = 0.35
                     state.is_new_idea = top > threshold
-                    # Debug info: show top distance and threshold for diagnosis
-                    debug(f"[RAGAgent] top_distance={top}, threshold={threshold}, is_new_idea={state.is_new_idea}")
+                    logger.debug(f"RAG: top_distance={top}, threshold={threshold}, is_new_idea={state.is_new_idea}")
             state.agent_outputs[self.name] = str(results)
 
         except Exception as e:
             # Fail gracefully without breaking pipeline
             # When RAG fails, leave is_new_idea=False (conservative default)
             state.rag_results = []
-            state.is_new_idea = False
+            state.is_new_idea = True
             state.agent_outputs[self.name] = (
                 f"error: {type(e).__name__}: {e}"
             )
-            debug(f"[RAGAgent] Error while searching: {e}, leaving is_new_idea=False")
+            logger.error(f"RAG: Error while searching: {e}, leaving is_new_idea=False")
 
         return state

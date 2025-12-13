@@ -7,7 +7,7 @@ tqdm
 orjson
 
 # === LLM / GGUF / Inference ===
-llama-cpp-python[cuda]
+llama-cpp-python
 
 # === Vector DB / RAG (Weaviate) ===
 weaviate-client
@@ -28,3 +28,5 @@ uvicorn
 pytest
 pytest-mock
 pytest-cov
+
+prometheus-fastapi-instrumentator

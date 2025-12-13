@@ -1,52 +1,38 @@
-# OriginHub Agentic API - Dockerfile
-# Optimized for OpenAI backend deployment
-
 FROM python:3.10-slim
 
-# Set working directory
 WORKDIR /app
 
-# Install system dependencies
+# Install system dependencies including cmake for llama-cpp-python
 RUN apt-get update && apt-get install -y \
-    gcc \
-    g++ \
+    build-essential \
     curl \
+    git \
+    cmake \
     && rm -rf /var/lib/apt/lists/*
 
-# Copy requirements first for better caching
-COPY src/agentic/requirements.txt /app/requirements-agentic.txt
-
-# Create optimized requirements for OpenAI backend (no CUDA/llama-cpp/sentence-transformers needed)
-# Filter out heavy dependencies that aren't needed for OpenAI backend
-RUN cat /app/requirements-agentic.txt | \
-    grep -v "llama-cpp-python" | \
-    grep -v "sentence-transformers" | \
-    sed 's/\[cuda\]//' > /app/requirements.txt && \
-    echo "" >> /app/requirements.txt && \
-    echo "# OpenAI API client" >> /app/requirements.txt && \
-    echo "openai>=1.0.0" >> /app/requirements.txt && \
-    echo "" >> /app/requirements.txt && \
-    echo "# HTTP client for health checks" >> /app/requirements.txt && \
-    echo "requests>=2.31.0" >> /app/requirements.txt
+# Copy requirements
+COPY src/agentic/requirements_api.txt .
 
 # Install Python dependencies
-RUN pip install --no-cache-dir --upgrade pip && \
-    pip install --no-cache-dir -r /app/requirements.txt
+RUN pip install --no-cache-dir -r requirements_api.txt
 
 # Copy application code
-COPY src/ /app/src/
-COPY pytest.ini /app/pytest.ini
+COPY src/ ./src/
+COPY configs/ ./configs/
+
+# Create non-root user
+RUN useradd -m -u 1000 agentic && chown -R agentic:agentic /app
+USER agentic
 
 # Set Python path
-ENV PYTHONPATH=/app
-
-# Expose API port
-EXPOSE 8000
+ENV PYTHONPATH=/app:${PYTHONPATH}
 
 # Health check
-HEALTHCHECK --interval=30s --timeout=10s --start-period=40s --retries=3 \
-    CMD curl -f http://localhost:8000/health || exit 1
+HEALTHCHECK --interval=30s --timeout=10s --start-period=30s --retries=3 \
+    CMD curl -f http://localhost:8004/health || exit 1
 
-# Run the API server
-CMD ["python", "src/agentic/scripts/api_server.py"]
+# Expose port
+EXPOSE 8004
 
+# Run the API
+CMD ["python", "-m", "src.agentic.api.app"]

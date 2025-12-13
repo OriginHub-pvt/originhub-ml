@@ -7,7 +7,7 @@ tqdm
 orjson
 
 # === LLM / GGUF / Inference ===
-llama-cpp-python[cuda]
+llama-cpp-python
 
 # === Vector DB / RAG (Weaviate) ===
 weaviate-client
@@ -25,3 +25,5 @@ fastapi
 uvicorn
 
 openai
+
+prometheus-fastapi-instrumentator

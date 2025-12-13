@@ -37,6 +37,7 @@ metadata:
 type: Opaque
 stringData:
   OPENAI_API_KEY: "openai_api_key_here"
+  HUGGINGFACE_APIKEY: "huggingface_api_key_here"
 
 ---
 # Service for API
@@ -75,10 +76,14 @@ spec:
     metadata:
       labels:
         app: agentic-api
+      annotations:
+        prometheus.io/scrape: "true"
+        prometheus.io/path: "/metrics"
+        prometheus.io/port: "8004"
     spec:
       containers:
         - name: agentic-api
-          image: us-central1-docker.pkg.dev/windy-tiger-476321-a4/machine-learning/agentic-api:lastest
+          image: <your docker image here>
           imagePullPolicy: Always
           ports:
             - name: http
