@@ -8,7 +8,7 @@ End-to-end system for discovering, evaluating, and deploying startup ideas. The 
 - **Backend / Data Plane:** API, Postgres (+ Zalando Postgres Operator), and Weaviate run on Google Kubernetes Engine (GKE).
 - **Orchestration:** Airflow for data ingestion, Kubeflow + GitHub Actions for model CI/CD, Vertex AI for evaluation/retrain, and Prometheus/Grafana/Lens for monitoring.
 
-## Origin Overview and Demo
+## OriginHub Overview and Demo
 
 [![Watch the demo](https://img.youtube.com/vi/jx7M3-PZhE8/hqdefault.jpg)](https://youtu.be/jx7M3-PZhE8)
 
